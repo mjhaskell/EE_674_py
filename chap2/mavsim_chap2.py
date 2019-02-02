@@ -1,19 +1,13 @@
-"""
-mavSimPy 
-    - Chapter 2 assignment for Beard & McLain, PUP, 2012
-    - Update history:  
-        1/10/2019 - RWB
-"""
 import sys
 sys.path.append('..')
 
 # import viewers and video writer
 #from chap2.spacecraft_viewer import spacecraft_viewer
 from chap2.mav_viewer import mav_viewer
-from chap2.video_writer import video_writer
+#from chap2.video_writer import video_writer
 
 # import parameters
-import parameters.simulation_parameters as SIM
+import params.simulation_parameters as SIM
 # import message types
 from message_types.msg_state import msg_state
 
@@ -21,13 +15,13 @@ from message_types.msg_state import msg_state
 state = msg_state()  # instantiate state message
 
 # initialize viewers and video
-VIDEO = False  # True==write video, False==don't write video
+#VIDEO = False  # True==write video, False==don't write video
 #mav_view = spacecraft_viewer()
 mav_view = mav_viewer()
-if VIDEO == True:
-    video = video_writer(video_name="chap2_video.avi",
-                         bounding_box=(0, 0, 1000, 1000),
-                         output_rate=SIM.ts_video)
+#if VIDEO == True:
+#    video = video_writer(video_name="chap2_video.avi",
+#                         bounding_box=(0, 0, 1000, 1000),
+#                         output_rate=SIM.ts_video)
 
 # initialize the simulation time
 sim_time = SIM.start_time
@@ -51,11 +45,11 @@ while sim_time < SIM.end_time:
 
     #-------update viewer and video-------------
     mav_view.update(state)
-    if VIDEO == True: video.update(sim_time)
+#    if VIDEO == True: video.update(sim_time)
 
     #-------increment time-------------
     sim_time += SIM.ts_simulation
 
-print("Press Ctrl-Q to exit...")
-if VIDEO == True: video.close()
+#print("Press Ctrl-Q to exit...")
+#if VIDEO == True: video.close()
 

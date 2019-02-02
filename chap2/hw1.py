@@ -1,5 +1,8 @@
-from mav_viewer import mav_viewer
-from msg_state import msg_state
+import sys
+sys.path.append('..')
+
+from chap2.mav_viewer import mav_viewer
+from message_types.msg_state import msg_state
 
 mv = mav_viewer()
 state = msg_state()
