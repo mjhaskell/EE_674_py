@@ -1,29 +1,12 @@
 import sys
 sys.path.append('..')
 
-# import viewers and video writer
-#from chap2.spacecraft_viewer import spacecraft_viewer
 from chap2.mav_viewer import mav_viewer
-#from chap2.video_writer import video_writer
-
-# import parameters
-import params.simulation_parameters as SIM
-# import message types
+import params.sim_params as SIM
 from message_types.msg_state import msg_state
 
-# initialize messages
 state = msg_state()  # instantiate state message
-
-# initialize viewers and video
-#VIDEO = False  # True==write video, False==don't write video
-#mav_view = spacecraft_viewer()
 mav_view = mav_viewer()
-#if VIDEO == True:
-#    video = video_writer(video_name="chap2_video.avi",
-#                         bounding_box=(0, 0, 1000, 1000),
-#                         output_rate=SIM.ts_video)
-
-# initialize the simulation time
 sim_time = SIM.start_time
 
 # main simulation loop
@@ -50,6 +33,4 @@ while sim_time < SIM.end_time:
     #-------increment time-------------
     sim_time += SIM.ts_simulation
 
-#print("Press Ctrl-Q to exit...")
-#if VIDEO == True: video.close()
-
+print('Simulation has ended')
