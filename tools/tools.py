@@ -1,6 +1,18 @@
 import numpy as np
 import math
 
+def Quaternion2Rotation(quat):
+    e0 = quat.item(0)
+    e1 = quat.item(1)
+    e2 = quat.item(2)
+    e3 = quat.item(3)
+
+    R = np.array([[e1**2+e0**2-e2**2-e3**2,2*(e1*e2-e3*e0),2*(e1*e3+e2*e0)],
+                  [2*(e1*e2+e3*e0),e2**2+e0**2-e1**2-e3**2,2*(e2*e3-e1*e0)],
+                  [2*(e1*e3-e2*e0),2*(e2*e3+e1*e0),e3**2+e0**2-e1**2-e2**2]])
+
+    return R
+
 def Quaternion2Euler(quat):
     e0 = quat[0]
     ex = quat[1]

@@ -13,6 +13,7 @@ from message_types.msg_state import msg_state
 
 import params.aerosonde_params as MAV
 from tools.tools import Quaternion2Rotation, Quaternion2Euler
+from math import exp
 
 class mav_dynamics:
     def __init__(self, Ts):
@@ -113,14 +114,13 @@ class mav_dynamics:
         n = forces_moments.item(5)
 
         # position kinematics
-        Rv_b = np.array([[e1**2 + e0**2 - e2**2 - e3**2, 2*(e1*e2 - e3*e0), 2*(e1*e3 + e2*e0)],
-                         [2*(e1*e2 + e3*e0), e2**2 + e0**2 - e1**2 - e3**2, 2*(e2*e3 - e1*e0)],
-                         [2*(e1*e3 - e2*e0), 2*(e2*e3 + e1*e0), e3**2 + e0**2 - e1**2 - e2**2]])
-
-        pos_dot = Rv_b @ np.array([u, v, w]).T
+        Rv_b = Quaternion2Rotation(state[6:10])
+        
+        pos_dot = Rv_b @ np.array([u,v,w]).T
         pn_dot = pos_dot.item(0)
         pe_dot = pos_dot.item(1)
         pd_dot = pos_dot.item(2)
+         
 
         # position dynamics
         u_dot = r*v - q*w + 1/MAV.mass * fx
@@ -144,12 +144,18 @@ class mav_dynamics:
         return x_dot
 
     def _update_velocity_data(self, wind=np.zeros((6,1))):
+        Rb_v = Quaternion2Rotation(self._state[6:10])
+
+        self._wind = Rb_v @ wind[:3] + wind[3:]
+        V = self._state[3:6]
+        Vr = V - self._wind
+
         # compute airspeed
-        self._Va =
+        self._Va = np.linalg.norm(Vr)
         # compute angle of attack
-        self._alpha =
+        self._alpha = np.arctan2(Vr.item(2),Vr.item(0))
         # compute sideslip angle
-        self._beta =
+        self._beta = np.arcsin(Vr.item(1)/self._Va)
 
     def _forces_moments(self, delta):
         """
@@ -157,10 +163,27 @@ class mav_dynamics:
         :param delta: np.matrix(delta_a, delta_e, delta_r, delta_t)
         :return: Forces and Moments on the UAV np.matrix(Fx, Fy, Fz, Ml, Mn, Mm)
         """
+        fb_grav = Quaternion2Rotation(self._state[6:10]).T @ np.array([[0,0,
+                            MAV.mass*MAV.gravity]]).T
+
+        # longitudinal forces and moments
+        fx,fz,m = self.calcLonDynamics(delta.item(0))
+        fx += fb_grav.item(0)
+        fz += fb_grav.item(2)
+
+        # lateral forces and moments
+        fy,l,n = self.calcLatDynamics(delta.item(2),delta.item(3))
+        fy += fb_grav.item(1)
+
+        # propeller/motor forces and moments
+        fp,mp = self.calcMotorDynamics(delta.item(1))
+        fx += fp
+        l += mp
+
         self._forces[0] = fx
         self._forces[1] = fy
         self._forces[2] = fz
-        return np.array([[fx, fy, fz, Mx, My, Mz]]).T
+        return np.array([[fx, fy, fz, l, m, n]]).T
 
     def _update_msg_true_state(self):
         # update the class structure for the true state:
@@ -175,11 +198,91 @@ class mav_dynamics:
         self.msg_true_state.phi = phi
         self.msg_true_state.theta = theta
         self.msg_true_state.psi = psi
-        self.msg_true_state.Vg =
-        self.msg_true_state.gamma =
-        self.msg_true_state.chi =
+        self.msg_true_state.Vg = np.linalg.norm(self._state[3:6])
+        self.msg_true_state.gamma = np.arctan2(-self._state.item(5),self._state.item(3))
+        self.msg_true_state.chi = np.arctan2(self._state.item(4),self._state.item(3))
         self.msg_true_state.p = self._state.item(10)
         self.msg_true_state.q = self._state.item(11)
         self.msg_true_state.r = self._state.item(12)
         self.msg_true_state.wn = self._wind.item(0)
         self.msg_true_state.we = self._wind.item(1)
+
+
+    def calcLonDynamics(self, de):
+        M = MAV.M
+        alpha = self._alpha
+        alpha0 = MAV.alpha0
+        rho = MAV.rho
+        Va = self._Va
+        S = MAV.S_wing
+        q = self.msg_true_state.q
+        c = MAV.c
+
+        sigma = (1+exp(-M*(alpha-alpha0))+exp(M*(alpha+alpha0))) / \
+                ((1+exp(-M*(alpha-alpha0))) * (1+exp(M*(alpha+alpha0))))
+        CL = (1-sigma)*(MAV.C_L_0 + MAV.C_L_alpha*alpha) + \
+                sigma*(2*np.sign(alpha)*(np.sin(alpha)**2)*np.cos(alpha))
+        CD = MAV.C_D_p+((MAV.C_L_0+MAV.C_L_alpha*alpha)**2)/(np.pi*MAV.e*MAV.AR)
+        
+        pVa2S_2 = 0.5*rho*(Va**2)*S
+        c_2Va = c / (2*Va)
+
+        Lift = pVa2S_2*(CL + MAV.C_L_q*c_2Va*q + MAV.C_L_delta_e*de)
+        Drag = pVa2S_2*(CD+MAV.C_D_q*c_2Va*q + MAV.C_D_delta_e*de)
+
+        fx = -Drag*np.cos(alpha) + Lift*np.sin(alpha)
+        fz = -Drag*np.sin(alpha) - Lift*np.cos(alpha)
+
+        m = pVa2S_2*c * (MAV.C_m_0 + MAV.C_m_alpha*alpha + MAV.C_m_q*c_2Va*q +\
+                MAV.C_m_delta_e*de)
+
+        return fx,fz,m
+
+    def calcLatDynamics(self,da,dr):
+        b = MAV.b
+        Va = self._Va
+        beta = self.msg_true_state.beta
+        p = self.msg_true_state.p
+        r = self.msg_true_state.r
+        rho = MAV.rho
+        S = MAV.S_wing
+
+        pVa2S_2 = 0.5*rho*(Va**2)*S
+        b_2Va = b / (2*Va)
+
+        fy = pVa2S_2 * (MAV.C_Y_0 + MAV.C_Y_beta*beta + MAV.C_Y_p*b_2Va*p + \
+                MAV.C_Y_r*b_2Va*r + MAV.C_Y_delta_a*da + MAV.C_Y_delta_r*dr) 
+
+        l = pVa2S_2*b*(MAV.C_ell_0 + MAV.C_ell_beta*beta + MAV.C_ell_p*b_2Va*p+\
+                MAV.C_ell_r*b_2Va*r + MAV.C_ell_delta_a*da+MAV.C_ell_delta_r*dr)
+
+        n = pVa2S_2*b * (MAV.C_n_0 + MAV.C_n_beta*beta + MAV.C_n_p*b_2Va*p + \
+                MAV.C_n_r*b_2Va*r + MAV.C_n_delta_a*da + MAV.C_n_delta_r*dr)
+        
+        return fy,l,n
+
+    def calcMotorDynamics(self,dt):
+        rho = MAV.rho
+        D = MAV.D_prop
+        Va = self._Va
+
+        V_in = MAV.V_max * dt
+
+        a = (rho * D**5) / ((2*np.pi)**2) * MAV.C_Q0
+        b = (rho * (D**4) * MAV.C_Q1 * Va)/(2*np.pi) + (MAV.KQ**2)/MAV.R_motor
+        c = rho * (D**3) * MAV.C_Q2 * (Va**2) - (MAV.KQ*V_in)/MAV.R_motor + \
+                MAV.KQ * MAV.i0
+
+        Omega_op = (-b + np.sqrt((b**2) - 4*a*c)) / (2*a)
+        J_op = (2 * np.pi * Va) / (Omega_op * D)
+
+        CT = MAV.C_T2 * (J_op**2) + MAV.C_T1 * J_op + MAV.C_T0
+        CQ = MAV.C_Q2 * (J_op**2) + MAV.C_Q1 * J_op + MAV.C_Q0
+
+        n = Omega_op / (2*np.pi)
+
+        Qp = rho * (n**2) * (D**5) * CQ
+        Tp = rho * (n**2) * (D**4) * CT
+
+        return Tp,Qp
+
