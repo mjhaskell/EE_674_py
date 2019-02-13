@@ -20,7 +20,7 @@ sim_time = SIM.start_time
 # main simulation loop
 while sim_time < SIM.end_time:
     #-------set control surfaces-------------
-    delta_e = -0.2
+    delta_e = -0.3
     delta_t = 0.5
     delta_a = 0.0
     delta_r = 0.0 #0.005

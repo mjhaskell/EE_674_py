@@ -12,7 +12,7 @@ class wind_simulation:
     def __init__(self, Ts):
         # steady state wind defined in the inertial frame
         self._steady_state = np.array([[0., 0., 0.]]).T
-        # self.steady_state = np.array([[3., 1., 0.]]).T
+        # self._steady_state = np.array([[0., 5., 0.]]).T
 
         # Dryden Params
         self.Lu = 200.0
