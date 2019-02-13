@@ -50,18 +50,20 @@ def compute_trim(mav, Va, gamma):
 
 # objective function to be minimized
 def trim_objective(x, mav, Va, gamma):
-    
-    xdot_star = np.array([[Va,0,Va*np.sin(gamma),0,0,0,0,0,0,0,0,0,0]]).T
+    state = x[:13]
+    delta = x[13:]
 
-    print('inputs: \n',x[13:])
-    
-    wrench = mav._forces_moments(x[13:])
-    f = mav._derivatives(x[:13], wrench)
+    xdot_star = np.array([[0,0,-Va*np.sin(gamma),0,0,0,0,0,0,0,0,0,0]]).T
 
-    print('states: \n',f)
-    
-    error = f - xdot_star
-    J = error.T @ error
+    mav._state = state
+    mav._update_velocity_data()
+    wrench = mav._forces_moments(delta)
+    f = mav._derivatives(state, wrench)
+
+    error = xdot_star - f
+    error = error[2:]
+
+    J = np.linalg.norm(error)**2
 
     return J
 

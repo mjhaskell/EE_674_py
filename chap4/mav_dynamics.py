@@ -178,7 +178,7 @@ class mav_dynamics:
         # propeller/motor forces and moments
         fp,mp = self.calcMotorDynamics(delta.item(1))
         fx += fp
-        l += mp
+        l -= mp
 
         self._forces[0] = fx
         self._forces[1] = fy
