@@ -53,7 +53,7 @@ class mav_dynamics:
     def update_state(self, delta, wind):
         '''
             Integrate the differential equations defining dynamics, update sensors
-            delta = (delta_a, delta_e, delta_r, delta_t) are the control inputs
+            delta = (delta_e, delta_t, delta_a, delta_r) are the control inputs
             wind is the wind vector in inertial coordinates
             Ts is the time step between function calls.
         '''
@@ -146,16 +146,28 @@ class mav_dynamics:
     def _update_velocity_data(self, wind=np.zeros((6,1))):
         Rb_v = Quaternion2Rotation(self._state[6:10])
 
-        self._wind = Rb_v @ wind[:3] + wind[3:]
+        self._wind = Rb_v.T @ wind[:3] + wind[3:]
         V = self._state[3:6]
         Vr = V - self._wind
 
         # compute airspeed
         self._Va = np.linalg.norm(Vr)
+
+        ur = Vr.item(0)
+        vr = Vr.item(1)
+        wr = Vr.item(2)
+
         # compute angle of attack
-        self._alpha = np.arctan2(Vr.item(2),Vr.item(0))
+        if ur == 0:
+            self._alpha = np.sign(wr) * np.pi/2.0
+        else:
+            self._alpha = np.arctan2(wr,ur)
+
         # compute sideslip angle
-        self._beta = np.arcsin(Vr.item(1)/self._Va)
+        if ur == 0 and wr == 0:
+            self._beta = np.sign(vr) * np.pi/2.0
+        else:
+            self._beta = np.arcsin(vr/self._Va)
 
     def _forces_moments(self, delta):
         """
@@ -215,11 +227,13 @@ class mav_dynamics:
         rho = MAV.rho
         Va = self._Va
         S = MAV.S_wing
-        q = self.msg_true_state.q
+        q = self._state.item(11)
         c = MAV.c
 
-        sigma = (1+exp(-M*(alpha-alpha0))+exp(M*(alpha+alpha0))) / \
-                ((1+exp(-M*(alpha-alpha0))) * (1+exp(M*(alpha+alpha0))))
+        e_neg_M = exp(-M * (alpha - alpha0))
+        e_pos_M = exp(M * (alpha + alpha0))
+
+        sigma = (1 + e_neg_M + e_pos_M) / ((1 + e_neg_M) * (1 + e_pos_M))
         CL = (1-sigma)*(MAV.C_L_0 + MAV.C_L_alpha*alpha) + \
                 sigma*(2*np.sign(alpha)*(np.sin(alpha)**2)*np.cos(alpha))
         CD = MAV.C_D_p+((MAV.C_L_0+MAV.C_L_alpha*alpha)**2)/(np.pi*MAV.e*MAV.AR)
@@ -242,8 +256,8 @@ class mav_dynamics:
         b = MAV.b
         Va = self._Va
         beta = self.msg_true_state.beta
-        p = self.msg_true_state.p
-        r = self.msg_true_state.r
+        p = self._state.item(10)
+        r = self._state.item(12)
         rho = MAV.rho
         S = MAV.S_wing
 
@@ -259,7 +273,7 @@ class mav_dynamics:
         n = pVa2S_2*b * (MAV.C_n_0 + MAV.C_n_beta*beta + MAV.C_n_p*b_2Va*p + \
                 MAV.C_n_r*b_2Va*r + MAV.C_n_delta_a*da + MAV.C_n_delta_r*dr)
         
-        return fy,l,n
+        return fy, l, n
 
     def calcMotorDynamics(self,dt):
         rho = MAV.rho
@@ -284,5 +298,5 @@ class mav_dynamics:
         Qp = rho * (n**2) * (D**5) * CQ
         Tp = rho * (n**2) * (D**4) * CT
 
-        return Tp,Qp
+        return Tp, Qp
 

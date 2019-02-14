@@ -30,8 +30,6 @@ mav = mav_dynamics(SIM.ts_simulation)
 Va = 25.
 gamma = 0.*np.pi/180.
 trim_state, trim_input = compute_trim(mav, Va, gamma)
-print('Trim State: \n',trim_state)
-print('Trim Input: \n',trim_input)
 mav._state = trim_state  # set the initial state of the mav to the trim state
 delta = trim_input  # set input to constant constant trim input
 
@@ -63,4 +61,4 @@ while sim_time < SIM.end_time:
     #-------increment time-------------
     sim_time += SIM.ts_simulation
 
-
+input('Press ENTER to close...')

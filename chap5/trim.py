@@ -1,4 +1,3 @@
-
 """
 compute_trim 
     - Chapter 5 assignment for Beard & McLain, PUP, 2012
@@ -14,9 +13,10 @@ from chap4.mav_dynamics import mav_dynamics
 
 def compute_trim(mav, Va, gamma):
     # define initial state and input
-    state0 = np.array([[0.,0.,-100.,Va,0,0.1,1.,0,0,0,0,0,0]]).T
+    state0 = np.array([[0.,0.,-100.,Va,0,0,1.,0,0,0,0,0,0]]).T
     delta0 = np.array([[0,0.5,0,0]]).T
     x0 = np.concatenate((state0, delta0), axis=0)
+
     # define equality constraints
     cons = ({'type': 'eq',
              'fun': lambda x: np.array([
@@ -50,8 +50,8 @@ def compute_trim(mav, Va, gamma):
 
 # objective function to be minimized
 def trim_objective(x, mav, Va, gamma):
-    state = x[:13]
-    delta = x[13:]
+    state = x[:13].reshape((13,1))
+    delta = x[13:].reshape((4,1))
 
     xdot_star = np.array([[0,0,-Va*np.sin(gamma),0,0,0,0,0,0,0,0,0,0]]).T
 
