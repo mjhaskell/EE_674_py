@@ -34,7 +34,7 @@ def compute_tf_model(mav, trim_state, trim_input):
     phi,theta,psi = Quaternion2Euler(trim_state[6:10])
 
     # lateral transfer functions
-    a_phi_1 = 0.5 * rho * (Va**2) * S * b * Cpp * b_2Va
+    a_phi_1 = -0.5 * rho * (Va**2) * S * b * Cpp * b_2Va
     a_phi_2 = 0.5 * rho * (Va**2) * S * b * MAV.C_p_delta_a
 
     T_phi_delta_a = TF(np.array([a_phi_2]),np.array([1,a_phi_1,0]))
@@ -43,9 +43,10 @@ def compute_tf_model(mav, trim_state, trim_input):
     frac = (rho*Va*S)/(2*MAV.mass*np.cos(beta))
 
     a_beta_1 = - frac * MAV.C_Y_beta
-    a_beta_2 = frac * MAV.C_Y_delta_r
+    a_beta_2 = frac * MAV.C_Y_delta_r 
 
     T_beta_delta_r = TF(np.array([a_beta_2]),np.array([1,a_beta_1]))
+    T_v_delta_r = TF(np.array([a_beta_2*Va*np.cos(beta)]),np.array([1,a_beta_1]))
 
     # Longitudinal transfer functions
     frac = (rho*(Va**2)*c*S) / (2*MAV.Jy)
@@ -60,14 +61,15 @@ def compute_tf_model(mav, trim_state, trim_input):
 
     frac = rho*Va*S / MAV.mass
     a_V_1 = frac * (MAV.C_D_0 + MAV.C_D_alpha*alpha + MAV.C_D_delta_e*de)
-    a_V_1 -= dT_dVa(mav,Va,dt)
-    a_V_2 = dT_ddelta_t(mav,Va,dt)
+    a_V_1 -= dT_dVa(mav,Va,dt) / MAV.mass
+    a_V_2 = dT_ddelta_t(mav,Va,dt) / MAV.mass
     a_V_3 = MAV.gravity * np.cos(theta - alpha)
 
     T_Va_delta_t = TF(np.array([a_V_2]),np.array([1,a_V_1]))
     T_Va_theta = TF(np.array([-a_V_3]),np.array([1,a_V_1]))
 
-    return T_phi_delta_a, T_chi_phi, T_theta_delta_e, T_h_theta, T_h_Va, T_Va_delta_t, T_Va_theta, T_beta_delta_r
+    return T_phi_delta_a, T_chi_phi, T_theta_delta_e, T_h_theta, T_h_Va, \
+            T_Va_delta_t, T_Va_theta, T_beta_delta_r, T_v_delta_r
 
 def compute_ss_model(mav, trim_state, trim_input):
     euler_trim = euler_state(trim_state)
@@ -260,23 +262,24 @@ if __name__ == "__main__":
     trim_state, trim_input = compute_trim(dyn, Va, gamma)
     dyn._state = trim_state
 
-    A_lon, B_lon, A_lat, B_lat = compute_ss_model(dyn, trim_state, trim_input)
-    print('A_lon: \n',A_lon)
-    print('B_lon: \n',B_lon)
-    print('A_lat: \n',A_lat)
-    print('B_lat: \n',B_lat)
+#    A_lon, B_lon, A_lat, B_lat = compute_ss_model(dyn, trim_state, trim_input)
+#    print('A_lon: \n',A_lon)
+#    print('B_lon: \n',B_lon)
+#    print('A_lat: \n',A_lat)
+#    print('B_lat: \n',B_lat)
 
-#    T_phi_delta_a, T_chi_phi, T_theta_delta_e, T_h_theta, \
-#    T_h_Va, T_Va_delta_t, T_Va_theta, T_beta_delta_r \
-#        = compute_tf_model(dyn, trim_state, trim_input)
-#    print('T_phi_delta_a: \n',T_phi_delta_a)
-#    print('T_chi_phi: \n',T_chi_phi)
-#    print('T_theta_delta_e: \n',T_theta_delta_e)
-#    print('T_h_theta: \n',T_h_theta)
-#    print('T_h_Va: \n',T_h_Va)
-#    print('T_Va_delta_t: \n',T_Va_delta_t)
-#    print('T_Va_theta: \n',T_Va_theta)
-#    print('T_beta_delta_r: \n',T_beta_delta_r)
+    T_phi_delta_a, T_chi_phi, T_theta_delta_e, T_h_theta, \
+    T_h_Va, T_Va_delta_t, T_Va_theta, T_beta_delta_r, T_v_delta_r \
+        = compute_tf_model(dyn, trim_state, trim_input)
+    print('T_phi_delta_a: \n',T_phi_delta_a)
+    print('T_chi_phi: \n',T_chi_phi)
+    print('T_theta_delta_e: \n',T_theta_delta_e)
+    print('T_h_theta: \n',T_h_theta)
+    print('T_h_Va: \n',T_h_Va)
+    print('T_Va_delta_t: \n',T_Va_delta_t)
+    print('T_Va_theta: \n',T_Va_theta)
+    print('T_beta_delta_r: \n',T_beta_delta_r)
+    print('T_v_delta_r: \n',T_v_delta_r)
 
 #    q = np.array([[1,0,0,0]]).T
 #    x_e = np.array([[1,2,3,4,5,6,0,np.pi/6.0,0,11,12,13]]).T

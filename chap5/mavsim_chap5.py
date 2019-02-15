@@ -35,14 +35,15 @@ delta = trim_input  # set input to constant constant trim input
 
 # # compute the state space model linearized about trim
 A_lon, B_lon, A_lat, B_lat = compute_ss_model(mav, trim_state, trim_input)
-T_phi_delta_a, T_chi_phi, T_theta_delta_e, T_h_theta, \
-T_h_Va, T_Va_delta_t, T_Va_theta, T_beta_delta_r \
-    = compute_tf_model(mav, trim_state, trim_input)
 
 print('A_lon: \n',A_lon)
 print('B_lon: \n',B_lon)
 print('A_lat: \n',A_lat)
 print('B_lat: \n',B_lat)
+
+T_phi_delta_a, T_chi_phi, T_theta_delta_e, T_h_theta, \
+T_h_Va, T_Va_delta_t, T_Va_theta, T_beta_delta_r, T_v_delta_r \
+    = compute_tf_model(mav, trim_state, trim_input)
 
 #print('T_phi_delta_a: \n',T_phi_delta_a)
 #print('T_chi_phi: \n',T_chi_phi)
@@ -52,6 +53,7 @@ print('B_lat: \n',B_lat)
 #print('T_Va_delta_t: \n',T_Va_delta_t)
 #print('T_Va_theta: \n',T_Va_theta)
 #print('T_beta_delta_r: \n',T_beta_delta_r)
+#print('T_v_delta_r: \n',T_v_delta_r)
 
 # initialize the simulation time
 sim_time = SIM.start_time
