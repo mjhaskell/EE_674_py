@@ -188,7 +188,7 @@ class mav_dynamics:
         fy += fb_grav.item(1)
 
         # propeller/motor forces and moments
-        fp,mp = self.calcMotorDynamics(delta.item(1))
+        fp,mp = self.calcMotorDynamics(self._Va, delta.item(1))
         fx += fp
         l -= mp
 
@@ -275,10 +275,10 @@ class mav_dynamics:
         
         return fy, l, n
 
-    def calcMotorDynamics(self,dt):
+    def calcMotorDynamics(self, Va, dt):
         rho = MAV.rho
         D = MAV.D_prop
-        Va = self._Va
+#        Va = self._Va
 
         V_in = MAV.V_max * dt
 
