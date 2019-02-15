@@ -71,10 +71,58 @@ def compute_tf_model(mav, trim_state, trim_input):
 
 def compute_ss_model(mav, trim_state, trim_input):
     euler_trim = euler_state(trim_state)
-    A = np.empty((13,12))
-    for x in range(len(euler_trim)):
-        A[:,x] = f_euler(mav,euler_trim,trim_input)
+    A = df_dx(mav, euler_trim, trim_input)
+    B = df_du(mav, euler_trim, trim_input)
 
+    pn = 0
+    pe = 1
+    h = 2
+    u = 3
+    v = 4
+    w = 5
+    phi = 6
+    th = 7
+    psi = 8
+    p = 9
+    q = 10
+    r = 11
+
+    de = 0
+    dt = 1
+    da = 2
+    dr = 3
+
+    A_lon = np.array([
+            [A[u,u],  A[u,w],  A[u,q],  A[u,th],  A[u,h]],
+            [A[w,u],  A[w,w],  A[w,q],  A[w,th],  A[w,h]],
+            [A[q,u],  A[q,w],  A[q,q],  A[q,th],  A[q,h]],
+            [A[th,u], A[th,w], A[th,q], A[th,th], A[th,h]],
+            [A[h,u],  A[h,w],  A[h,q],  A[h,th],  A[h,h]]
+            ])
+
+    B_lon = np.array([
+            [B[u,de],  B[u,dt]],
+            [B[w,de],  B[w,dt]],
+            [B[q,de],  B[q,dt]],
+            [B[th,de], B[th,dt]],
+            [B[h,de],  B[h,dt]]
+            ])
+
+    A_lat = np.array([
+            [A[v,v],   A[v,p],   A[v,r],   A[v,phi],   A[v,psi]],
+            [A[p,v],   A[p,p],   A[p,r],   A[p,phi],   A[p,psi]],
+            [A[r,v],   A[r,p],   A[r,r],   A[r,phi],   A[r,psi]],
+            [A[phi,v], A[phi,p], A[phi,r], A[phi,phi], A[phi,psi]],
+            [A[psi,v], A[psi,p], A[psi,r], A[psi,phi], A[psi,psi]]
+            ])
+
+    B_lat = np.array([
+            [B[v,da],   B[v,dr]],
+            [B[p,da],   B[p,dr]],
+            [B[r,da],   B[r,dr]],
+            [B[phi,da], B[phi,dr]],
+            [B[psi,da], B[psi,dr]]
+            ])
 
     return A_lon, B_lon, A_lat, B_lat
 
@@ -140,8 +188,6 @@ def df_dx(mav, x_euler, delta):
     dT_dx[9:12,10:13] = np.eye(3)
     dT_dx[6:9,6:10] = dtheta_dq(x_quat[6:10])
 
-#    u = mav._forces_moments(delta)
-    
     h = 0.005
     Jacobian = np.zeros((13,12))
     for i in range(12):
@@ -149,9 +195,6 @@ def df_dx(mav, x_euler, delta):
         x_p[i][0] += h
         x_m = np.copy(x_euler)
         x_m[i][0] -= h
-
-#        f_p = mav._derivatives(x_p,u)
-#        f_m = mav._derivatives(x_m,u)
 
         f_p = f_euler(mav,x_p,delta)
         f_m = f_euler(mav,x_m,delta)
@@ -165,6 +208,28 @@ def df_dx(mav, x_euler, delta):
 
 def df_du(mav, x_euler, delta):
     # take partial of f_euler with respect to delta
+    x_quat = quaternion_state(x_euler)
+    dT_dx = np.zeros((12,13))
+    dT_dx[:6,:6] = np.eye(6)
+    dT_dx[9:12,10:13] = np.eye(3)
+    dT_dx[6:9,6:10] = dtheta_dq(x_quat[6:10])
+
+    h = 0.005
+    Jacobian = np.zeros((13,4))
+    for i in range(4):
+        u_p = np.copy(delta)
+        u_p[i][0] += h
+        u_m = np.copy(delta)
+        u_m[i][0] -= h
+
+        f_p = f_euler(mav,x_euler,u_p)
+        f_m = f_euler(mav,x_euler,u_m)
+
+        Jac_col_i = (f_p - f_m) / (2 * h)
+        Jacobian[:,i] = Jac_col_i[:,0]
+
+    B = dT_dx @ Jacobian
+
     return B
 
 def dT_dVa(mav, Va, delta_t):
@@ -195,6 +260,12 @@ if __name__ == "__main__":
     trim_state, trim_input = compute_trim(dyn, Va, gamma)
     dyn._state = trim_state
 
+    A_lon, B_lon, A_lat, B_lat = compute_ss_model(dyn, trim_state, trim_input)
+    print('A_lon: \n',A_lon)
+    print('B_lon: \n',B_lon)
+    print('A_lat: \n',A_lat)
+    print('B_lat: \n',B_lat)
+
 #    T_phi_delta_a, T_chi_phi, T_theta_delta_e, T_h_theta, \
 #    T_h_Va, T_Va_delta_t, T_Va_theta, T_beta_delta_r \
 #        = compute_tf_model(dyn, trim_state, trim_input)
@@ -224,8 +295,7 @@ if __name__ == "__main__":
 #    A = dtheta_dq(quat)
 #    print('dTheta_dQuat: \n',A)
 
-    x_euler = np.array([[2,0,-2,1,0,1,0,np.pi/4,0,0,0,0]]).T
-    delta = np.array([[-0.1,0.7,trim_input.item(2),trim_input.item(3)]]).T
-    wrench = dyn._forces_moments(delta)
-    A = df_dx(dyn,x_euler,wrench)
-    print('df_dx: \n',A)
+#    x_euler = np.array([[2,0,-2,1,0,1,0,np.pi/4,0,0,0,0]]).T
+#    delta = np.array([[-0.1,0.7,trim_input.item(2),trim_input.item(3)]]).T
+#    A = df_dx(dyn,x_euler,delta)
+#    print('df_dx: \n',A)
