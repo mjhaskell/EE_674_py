@@ -101,6 +101,7 @@ def compute_ss_model(mav, trim_state, trim_input):
             [A[th,u], A[th,w], A[th,q], A[th,th], A[th,h]],
             [A[h,u],  A[h,w],  A[h,q],  A[h,th],  A[h,h]]
             ])
+#    A_lon = getALon(mav,trim_state,trim_input)
 
     B_lon = np.array([
             [B[u,de],  B[u,dt]],
@@ -117,6 +118,7 @@ def compute_ss_model(mav, trim_state, trim_input):
             [A[phi,v], A[phi,p], A[phi,r], A[phi,phi], A[phi,psi]],
             [A[psi,v], A[psi,p], A[psi,r], A[psi,phi], A[psi,psi]]
             ])
+    A_lat = getALat(mav,trim_state,trim_input)
 
     B_lat = np.array([
             [B[v,da],   B[v,dr]],
@@ -173,6 +175,23 @@ def dtheta_dq(quat):
 
     return Jacobian
 
+def dq_dtheta(euler):
+    h = 0.005
+    Jacobian = np.zeros((4,3))
+    for i in range(3):
+        e_p = np.copy(euler)
+        e_p[i][0] += h
+        e_m = np.copy(euler)
+        e_m[i][0] -= h
+        
+        f_p = Euler2Quaternion(e_p.item(0),e_p.item(1),e_p.item(2))
+        f_m = Euler2Quaternion(e_m.item(0),e_m.item(1),e_m.item(2))
+
+        Jac_col_i = (f_p - f_m) / (2 * h)
+        Jacobian[:,i] = Jac_col_i[:,0]
+
+    return Jacobian
+
 def f_euler(mav, x_euler, delta):
     # return 12x1 dynamics (as if state were Euler state)
     # compute f at euler_state
@@ -182,6 +201,14 @@ def f_euler(mav, x_euler, delta):
 
     return f_euler_
 
+def f_quat(mav, x_quat, delta):
+    # return 12x1 dynamics (as if state were Euler state)
+    # compute f at euler_state
+    u = mav._forces_moments(delta)
+    f_quat_ = mav._derivatives(x_quat,u)
+
+    return f_quat_
+
 def df_dx(mav, x_euler, delta):
     # take partial of f_euler with respect to x_euler
     x_quat = quaternion_state(x_euler)
@@ -189,24 +216,121 @@ def df_dx(mav, x_euler, delta):
     dT_dx[:6,:6] = np.eye(6)
     dT_dx[9:12,10:13] = np.eye(3)
     dT_dx[6:9,6:10] = dtheta_dq(x_quat[6:10])
+    dTinv_dx = np.zeros((13,12))
+    dTinv_dx[:6,:6] = np.eye(6)
+    dTinv_dx[10:13,9:12] = np.eye(3)
+    dTinv_dx[6:10,6:9] = dq_dtheta(x_euler[6:9])
 
     h = 0.005
-    Jacobian = np.zeros((13,12))
-    for i in range(12):
-        x_p = np.copy(x_euler)
+    Jacobian = np.zeros((13,13))
+    for i in range(13):
+        x_p = np.copy(x_quat)
         x_p[i][0] += h
-        x_m = np.copy(x_euler)
+        x_m = np.copy(x_quat)
         x_m[i][0] -= h
 
-        f_p = f_euler(mav,x_p,delta)
-        f_m = f_euler(mav,x_m,delta)
+        f_p = f_quat(mav,x_p,delta)
+        f_m = f_quat(mav,x_m,delta)
 
         Jac_col_i = (f_p - f_m) / (2 * h)
         Jacobian[:,i] = Jac_col_i[:,0]
 
-    A = dT_dx @ Jacobian
-    
+    A = dT_dx @ Jacobian @ dTinv_dx
+
     return A
+
+#def df_dx(mav, x_euler, delta):
+#    # take partial of f_euler with respect to x_euler
+#    u = mav._forces_moments(delta)
+#    h = 0.005
+#    A = np.zeros((12,12))
+#    for i in range(12):
+#        x_p = np.copy(x_euler)
+#        x_p[i][0] += h
+#        x_m = np.copy(x_euler)
+#        x_m[i][0] -= h
+#
+#        f_p = mav._derivatives_euler(x_p,u)
+#        f_m = mav._derivatives_euler(x_m,u)
+#
+#        Jac_col_i = (f_p - f_m) / (2 * h)
+#        A[:,i] = Jac_col_i[:,0]
+#    
+#    return A
+
+def getALat(mav, trim_state, trim_input):
+    # take partial of f_euler with respect to x_euler
+    rho = MAV.rho
+    m = MAV.mass
+    u = mav._state.item(3)
+    w = mav._state.item(5)
+    Va = mav._Va
+    S = MAV.S_wing
+    b = MAV.b
+    c = MAV.c
+    Cpp = MAV.C_p_p
+    Cpb = MAV.C_p_beta
+    Cp0 = MAV.C_p_0
+#    b_2Va = b / (2*Va)
+#    c_2Va = c / (2*Va)
+#    beta = mav._beta
+#    alpha = mav._alpha
+    phi,theta,psi = Quaternion2Euler(trim_state[6:10])
+
+    frac = rho*S/2
+    Y_v = frac*MAV.C_Y_beta/m * Va
+    Y_p = w + frac*Va*b/(2*m) * MAV.C_Y_p
+    Y_r = -u + frac*Va*b/(2*m) * MAV.C_Y_r
+    Y_da = frac*(Va**2)/m * MAV.C_Y_delta_a
+    Y_dr = frac*(Va**2)/m * MAV.C_Y_delta_r
+
+    L_v = frac*b*Cpb*Va
+    L_p = frac*Va*(b**2)/2.0 * Cpp
+    L_r = frac*Va*(b**2)/2.0 * MAV.C_p_r
+    L_da = frac*(Va**2)*b * MAV.C_p_delta_a
+    L_dr = frac*(Va**2)*b * MAV.C_p_delta_r
+
+    N_v = frac*b*MAV.C_r_beta * Va
+    N_p = frac*Va*(b**2)/2.0 * MAV.C_r_p
+    N_r = frac*Va*(b**2)/2.0 * MAV.C_r_r
+    N_da = frac*(Va**2)*b * MAV.C_r_delta_a
+    N_dr = frac*(Va**2)*b * MAV.C_r_delta_r
+
+    A_lat = np.array([
+            [Y_v, Y_p, Y_r, MAV.gravity*np.cos(theta)*np.cos(phi), 0],
+            [L_v, L_p, L_r, 0, 0],
+            [N_v, N_p, N_r, 0, 0],
+            [0, 1, np.cos(phi)*np.tan(theta), 0, 0],
+            [0, 0, np.cos(phi)/np.cos(theta), 0, 0],
+            ])
+
+    return A_lat
+
+def getALon(mav,trim_state,trim_input):
+    rho = MAV.rho
+    m = MAV.mass
+    u = mav._state.item(3)
+    w = mav._state.item(5)
+    Va = mav._Va
+    S = MAV.S_wing
+    b = MAV.b
+    c = MAV.c
+    Cpp = MAV.C_p_p
+    Cpb = MAV.C_p_beta
+    Cp0 = MAV.C_p_0
+#    b_2Va = b / (2*Va)
+#    c_2Va = c / (2*Va)
+    de = trim_input.item(0)
+    beta = mav._beta
+    alpha = mav._alpha
+    phi,theta,psi = Quaternion2Euler(trim_state[6:10])
+
+    
+
+#    X_u = u*rho*S/m * (MAV.C_X_0 + MAV.C_X_alpha*alpha + MAV.C_X_delta_e*de) \
+
+    A_lon - 0
+    return A_lon
 
 def df_du(mav, x_euler, delta):
     # take partial of f_euler with respect to delta
@@ -262,24 +386,31 @@ if __name__ == "__main__":
     trim_state, trim_input = compute_trim(dyn, Va, gamma)
     dyn._state = trim_state
 
-#    A_lon, B_lon, A_lat, B_lat = compute_ss_model(dyn, trim_state, trim_input)
-#    print('A_lon: \n',A_lon)
+#    trim_euler = euler_state(trim_state)
+#    trim_quat = quaternion_state(trim_euler)
+#    print('trim: \n',trim_state)
+#    print('euler: \n',trim_euler)
+#    print('quat: \n',trim_quat)
+   
+#    A_lat = getALat(dyn,trim_state,trim_input)
+    A_lon, B_lon, A_lat, B_lat = compute_ss_model(dyn, trim_state, trim_input)
+    print('A_lon: \n',A_lon)
 #    print('B_lon: \n',B_lon)
-#    print('A_lat: \n',A_lat)
+    print('A_lat: \n',A_lat)
 #    print('B_lat: \n',B_lat)
 
-    T_phi_delta_a, T_chi_phi, T_theta_delta_e, T_h_theta, \
-    T_h_Va, T_Va_delta_t, T_Va_theta, T_beta_delta_r, T_v_delta_r \
-        = compute_tf_model(dyn, trim_state, trim_input)
-    print('T_phi_delta_a: \n',T_phi_delta_a)
-    print('T_chi_phi: \n',T_chi_phi)
-    print('T_theta_delta_e: \n',T_theta_delta_e)
-    print('T_h_theta: \n',T_h_theta)
-    print('T_h_Va: \n',T_h_Va)
-    print('T_Va_delta_t: \n',T_Va_delta_t)
-    print('T_Va_theta: \n',T_Va_theta)
-    print('T_beta_delta_r: \n',T_beta_delta_r)
-    print('T_v_delta_r: \n',T_v_delta_r)
+#    T_phi_delta_a, T_chi_phi, T_theta_delta_e, T_h_theta, \
+#    T_h_Va, T_Va_delta_t, T_Va_theta, T_beta_delta_r, T_v_delta_r \
+#        = compute_tf_model(dyn, trim_state, trim_input)
+#    print('T_phi_delta_a: \n',T_phi_delta_a)
+#    print('T_chi_phi: \n',T_chi_phi)
+#    print('T_theta_delta_e: \n',T_theta_delta_e)
+#    print('T_h_theta: \n',T_h_theta)
+#    print('T_h_Va: \n',T_h_Va)
+#    print('T_Va_delta_t: \n',T_Va_delta_t)
+#    print('T_Va_theta: \n',T_Va_theta)
+#    print('T_beta_delta_r: \n',T_beta_delta_r)
+#    print('T_v_delta_r: \n',T_v_delta_r)
 
 #    q = np.array([[1,0,0,0]]).T
 #    x_e = np.array([[1,2,3,4,5,6,0,np.pi/6.0,0,11,12,13]]).T

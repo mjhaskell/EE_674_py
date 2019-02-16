@@ -40,3 +40,9 @@ def Euler2Quaternion(phi, theta, psi):
     quat[3] = s_psi2 * c_theta2 * c_phi2 - c_psi2 * s_theta2 * s_phi2  # ez
 
     return quat
+
+def Euler2Rotation(phi,theta,psi):
+    q = Euler2Quaternion(phi,theta,psi)
+    R = Quaternion2Rotation(q)
+
+    return R
