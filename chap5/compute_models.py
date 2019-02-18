@@ -76,6 +76,8 @@ def compute_ss_model(mav, trim_state, trim_input):
     A = df_dx(mav, euler_trim, trim_input)
     B = df_du(mav, euler_trim, trim_input)
 
+#    print('A: \n',A)
+
     pn = 0
     pe = 1
     h = 2
@@ -101,6 +103,7 @@ def compute_ss_model(mav, trim_state, trim_input):
             [A[th,u], A[th,w], A[th,q], A[th,th], A[th,h]],
             [A[h,u],  A[h,w],  A[h,q],  A[h,th],  A[h,h]]
             ])
+    A_lon[4,:] = -A_lon[4,:]
 #    A_lon = getALon(mav,trim_state,trim_input)
 
     B_lon = np.array([
@@ -118,7 +121,7 @@ def compute_ss_model(mav, trim_state, trim_input):
             [A[phi,v], A[phi,p], A[phi,r], A[phi,phi], A[phi,psi]],
             [A[psi,v], A[psi,p], A[psi,r], A[psi,phi], A[psi,psi]]
             ])
-    A_lat = getALat(mav,trim_state,trim_input)
+#    A_lat = getALat(mav,trim_state,trim_input)
 
     B_lat = np.array([
             [B[v,da],   B[v,dr]],
@@ -195,15 +198,20 @@ def dq_dtheta(euler):
 def f_euler(mav, x_euler, delta):
     # return 12x1 dynamics (as if state were Euler state)
     # compute f at euler_state
-    u = mav._forces_moments(delta)
     x_quat = quaternion_state(x_euler)
+    mav._state = x_quat
+    mav._update_velocity_data()
+    u = mav._forces_moments(delta)
     f_euler_ = mav._derivatives(x_quat,u)
 
     return f_euler_
 
 def f_quat(mav, x_quat, delta):
-    # return 12x1 dynamics (as if state were Euler state)
+    # return 13x1 dynamics (as if state were Euler state)
     # compute f at euler_state
+    mav._state = x_quat
+    mav._update_velocity_data()
+#    print('Va: \n',mav._Va)
     u = mav._forces_moments(delta)
     f_quat_ = mav._derivatives(x_quat,u)
 
@@ -216,10 +224,15 @@ def df_dx(mav, x_euler, delta):
     dT_dx[:6,:6] = np.eye(6)
     dT_dx[9:12,10:13] = np.eye(3)
     dT_dx[6:9,6:10] = dtheta_dq(x_quat[6:10])
+
+#    print('dT_dx: \n',dT_dx[6:9,6:10])
+
     dTinv_dx = np.zeros((13,12))
     dTinv_dx[:6,:6] = np.eye(6)
     dTinv_dx[10:13,9:12] = np.eye(3)
     dTinv_dx[6:10,6:9] = dq_dtheta(x_euler[6:9])
+
+    print('dTinv_dx: \n',dTinv_dx)
 
     h = 0.005
     Jacobian = np.zeros((13,13))
@@ -228,6 +241,8 @@ def df_dx(mav, x_euler, delta):
         x_p[i][0] += h
         x_m = np.copy(x_quat)
         x_m[i][0] -= h
+
+#        print('x_p: \n',x_p)
 
         f_p = f_quat(mav,x_p,delta)
         f_m = f_quat(mav,x_m,delta)
@@ -239,24 +254,23 @@ def df_dx(mav, x_euler, delta):
 
     return A
 
-#def df_dx(mav, x_euler, delta):
-#    # take partial of f_euler with respect to x_euler
-#    u = mav._forces_moments(delta)
-#    h = 0.005
-#    A = np.zeros((12,12))
-#    for i in range(12):
-#        x_p = np.copy(x_euler)
-#        x_p[i][0] += h
-#        x_m = np.copy(x_euler)
-#        x_m[i][0] -= h
-#
-#        f_p = mav._derivatives_euler(x_p,u)
-#        f_m = mav._derivatives_euler(x_m,u)
-#
-#        Jac_col_i = (f_p - f_m) / (2 * h)
-#        A[:,i] = Jac_col_i[:,0]
-#    
-#    return A
+def df_dx_euler(mav, x_euler, delta):
+    # take partial of f_euler with respect to x_euler
+    h = 0.005
+    A = np.zeros((12,12))
+    for i in range(12):
+        x_p = np.copy(x_euler)
+        x_p[i][0] += h
+        x_m = np.copy(x_euler)
+        x_m[i][0] -= h
+
+        f_p = f_euler(mav,x_p,delta)
+        f_m = f_euler(mav,x_m,delta)
+
+        Jac_col_i = (f_p - f_m) / (2 * h)
+        A[:,i] = Jac_col_i[:,0]
+    
+    return A
 
 def getALat(mav, trim_state, trim_input):
     # take partial of f_euler with respect to x_euler
@@ -431,5 +445,5 @@ if __name__ == "__main__":
 
 #    x_euler = np.array([[2,0,-2,1,0,1,0,np.pi/4,0,0,0,0]]).T
 #    delta = np.array([[-0.1,0.7,trim_input.item(2),trim_input.item(3)]]).T
-#    A = df_dx(dyn,x_euler,delta)
+#    A = df_dx_euler(dyn,x_euler,delta)
 #    print('df_dx: \n',A)
