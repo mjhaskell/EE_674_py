@@ -1,4 +1,3 @@
-
 """
 mavsim_python
     - Chapter 6 assignment for Beard & McLain, PUP, 2012
@@ -8,7 +7,7 @@ mavsim_python
 import sys
 sys.path.append('..')
 import numpy as np
-import parameters.simulation_parameters as SIM
+import params.sim_params as SIM
 
 from chap2.mav_viewer import mav_viewer
 from chap3.data_viewer import data_viewer
@@ -18,14 +17,8 @@ from chap6.autopilot import autopilot
 from tools.signals import signals
 
 # initialize the visualization
-VIDEO = False  # True==write video, False==don't write video
 mav_view = mav_viewer()  # initialize the mav viewer
 data_view = data_viewer()  # initialize view of data plots
-if VIDEO == True:
-    from chap2.video_writer import video_writer
-    video = video_writer(video_name="chap6_video.avi",
-                         bounding_box=(0, 0, 1000, 1000),
-                         output_rate=SIM.ts_video)
 
 # initialize elements of the architecture
 wind = wind_simulation(SIM.ts_simulation)
@@ -63,9 +56,7 @@ while sim_time < SIM.end_time:
                      mav.true_state, # estimated states
                      commanded_state, # commanded states
                      SIM.ts_simulation)
-    if VIDEO == True: video.update(sim_time)
 
     #-------increment time-------------
     sim_time += SIM.ts_simulation
 
-if VIDEO == True: video.close()
