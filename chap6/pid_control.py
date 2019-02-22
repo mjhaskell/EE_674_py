@@ -31,6 +31,9 @@ class pid_control:
         u_unsat = self.kp*error + self.ki*self.error_int + self.kd*self.y_dot
         u_sat = self._saturate(u_unsat)
 
+        if self.ki ~= 0:
+            self._integratorAntiWindup(u_sat,u_unsat)
+
         return u_sat
 
     def update_with_rate(self, y_ref, y, ydot, reset_flag=False):
@@ -39,6 +42,9 @@ class pid_control:
 
         u_unsat = self.kp*error + self.ki*self.error_int + self.kd*ydot
         u_sat = self._saturate(u_unsat)
+
+        if self.ki ~= 0:
+            self._integratorAntiWindup(u_sat,u_unsat)
 
         return u_sat
 
@@ -59,3 +65,5 @@ class pid_control:
         self.y_dot = self.a1*self.y_dot + self.a2*(y - self.y_d1)
         self.y_d1 = y
 
+    def _integratorAntiWindup(self, u_sat, u_unsat):
+        self.error_int += self.Ts/self.ki * (u_sat - u_unsat)
