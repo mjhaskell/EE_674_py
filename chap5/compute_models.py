@@ -6,6 +6,7 @@ compute_ss_model
 """
 import sys
 sys.path.append('..')
+import yaml
 import numpy as np
 from scipy.optimize import minimize
 from tools.tools import Euler2Quaternion, Quaternion2Euler
@@ -67,6 +68,21 @@ def compute_tf_model(mav, trim_state, trim_input):
 
     T_Va_delta_t = TF(np.array([a_V_2]),np.array([1,a_V_1]))
     T_Va_theta = TF(np.array([-a_V_3]),np.array([1,a_V_1]))
+
+    outfile = open('tf_params.yaml','w')
+    data = {
+           'a_phi_1': float(a_phi_1),
+           'a_phi_2': float(a_phi_2),
+           'a_beta_1': float(a_beta_1),
+           'a_beta_2': float(a_beta_2),
+           'a_theta_1': float(a_theta_1),
+           'a_theta_2': float(a_theta_2),
+           'a_theta_3': float(a_theta_3),
+           'a_V_1': float(a_V_1),
+           'a_V_2': float(a_V_2),
+           'a_V_3': float(a_V_3)
+           }
+    yaml.dump(data,outfile,default_flow_style=False)
 
     return T_phi_delta_a, T_chi_phi, T_theta_delta_e, T_h_theta, T_h_Va, \
             T_Va_delta_t, T_Va_theta, T_beta_delta_r, T_v_delta_r
@@ -407,15 +423,15 @@ if __name__ == "__main__":
 #    print('quat: \n',trim_quat)
    
 #    A_lat = getALat(dyn,trim_state,trim_input)
-    A_lon, B_lon, A_lat, B_lat = compute_ss_model(dyn, trim_state, trim_input)
-    print('A_lon: \n',A_lon)
+#    A_lon, B_lon, A_lat, B_lat = compute_ss_model(dyn, trim_state, trim_input)
+#    print('A_lon: \n',A_lon)
 #    print('B_lon: \n',B_lon)
-    print('A_lat: \n',A_lat)
+#    print('A_lat: \n',A_lat)
 #    print('B_lat: \n',B_lat)
 
-#    T_phi_delta_a, T_chi_phi, T_theta_delta_e, T_h_theta, \
-#    T_h_Va, T_Va_delta_t, T_Va_theta, T_beta_delta_r, T_v_delta_r \
-#        = compute_tf_model(dyn, trim_state, trim_input)
+    T_phi_delta_a, T_chi_phi, T_theta_delta_e, T_h_theta, \
+    T_h_Va, T_Va_delta_t, T_Va_theta, T_beta_delta_r, T_v_delta_r \
+        = compute_tf_model(dyn, trim_state, trim_input)
 #    print('T_phi_delta_a: \n',T_phi_delta_a)
 #    print('T_chi_phi: \n',T_chi_phi)
 #    print('T_theta_delta_e: \n',T_theta_delta_e)
