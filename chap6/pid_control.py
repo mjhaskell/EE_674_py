@@ -12,6 +12,7 @@ class pid_control:
         self.up_limit  = limits[1]
 
         self.error_int = 0.0
+        self.error_d1 = 0.0
         self.y_dot = 0.0
         self.y_d1 = 0.0
         # gains for differentiator
@@ -31,19 +32,19 @@ class pid_control:
         u_unsat = self.kp*error + self.ki*self.error_int + self.kd*self.y_dot
         u_sat = self._saturate(u_unsat)
 
-        if self.ki ~= 0:
+        if not self.ki == 0:
             self._integratorAntiWindup(u_sat,u_unsat)
 
         return u_sat
 
-    def update_with_rate(self, y_ref, y, ydot, reset_flag=False):
+    def update_with_rate(self, y_ref, y, ydot):
         error = y_ref - y
         self._integrateError(error)
 
         u_unsat = self.kp*error + self.ki*self.error_int + self.kd*ydot
         u_sat = self._saturate(u_unsat)
 
-        if self.ki ~= 0:
+        if not self.ki == 0:
             self._integratorAntiWindup(u_sat,u_unsat)
 
         return u_sat
@@ -58,7 +59,7 @@ class pid_control:
         return u_sat
 
     def _integrateError(self, error):
-        self.error_int += self.Ts/2.0 * (error _ self.error_d1)
+        self.error_int += self.Ts/2.0 * (error - self.error_d1)
         self.error_d1 = error
 
     def _differentiateY(self, y):

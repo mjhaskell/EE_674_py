@@ -4,7 +4,7 @@ import numpy as np
 #import chap5.transfer_function_coef as TF
 import yaml
 
-param_file = open('tf_params.yaml','r')
+param_file = open('../params/tf_params.yaml','r')
 params = yaml.load(param_file)
 a_phi_1 = params.get('a_phi_1')
 a_phi_2 = params.get('a_phi_2')
@@ -18,7 +18,7 @@ a_V_2 = params.get('a_V_2')
 a_V_3 = params.get('a_V_3')
 
 gravity = 9.8
-sigma = 
+#sigma = 
 Va0 = 25
 
 #----------roll loop-------------

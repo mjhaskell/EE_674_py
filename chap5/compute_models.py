@@ -69,7 +69,7 @@ def compute_tf_model(mav, trim_state, trim_input):
     T_Va_delta_t = TF(np.array([a_V_2]),np.array([1,a_V_1]))
     T_Va_theta = TF(np.array([-a_V_3]),np.array([1,a_V_1]))
 
-    outfile = open('tf_params.yaml','w')
+    outfile = open('../params/tf_params.yaml','w')
     data = {
            'a_phi_1': float(a_phi_1),
            'a_phi_2': float(a_phi_2),
