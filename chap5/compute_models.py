@@ -70,6 +70,25 @@ def compute_tf_model(mav, trim_state, trim_input):
     T_Va_theta = TF(np.array([-a_V_3]),np.array([1,a_V_1]))
 
     outfile = open('../params/tf_params.yaml','w')
+    state = {'pn': float(trim_state[0]),
+             'pe': float(trim_state[1]),
+             'pd': float(trim_state[2]),
+             'u': float(trim_state[3]),
+             'v': float(trim_state[4]),
+             'w': float(trim_state[5]),
+             'ew': float(trim_state[6]),
+             'ex': float(trim_state[7]),
+             'ey': float(trim_state[8]),
+             'ez': float(trim_state[9]),
+             'p': float(trim_state[10]),
+             'q': float(trim_state[11]),
+             'r': float(trim_state[12]),
+             }
+    inputs = {'de': float(trim_input[0]),
+              'dt': float(trim_input[1]),
+              'da': float(trim_input[2]),
+              'dr': float(trim_input[3]),
+              }
     data = {
            'a_phi_1': float(a_phi_1),
            'a_phi_2': float(a_phi_2),
@@ -80,7 +99,9 @@ def compute_tf_model(mav, trim_state, trim_input):
            'a_theta_3': float(a_theta_3),
            'a_V_1': float(a_V_1),
            'a_V_2': float(a_V_2),
-           'a_V_3': float(a_V_3)
+           'a_V_3': float(a_V_3),
+           'trim_state': state,
+           'trim_input': inputs
            }
     yaml.dump(data,outfile,default_flow_style=False)
 

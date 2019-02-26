@@ -3,7 +3,7 @@ import numpy as np
 sys.path.append('..')
 
 class pid_control:
-    def __init__(self,kp=0.0,ki=0.0,kd=0.0,limits=[-1.0,1.0],Ts=0.01,sigma=0.05):
+    def __init__(self,kp=0.0,ki=0.0,kd=0.0,limits=[-1.0,1.0],Ts=0.02,sigma=0.05):
         self.kp = kp
         self.ki = ki
         self.kd = kd
@@ -24,12 +24,12 @@ class pid_control:
         if wrap_flag:
             while error > np.pi:
                 error -= 2*np.pi
-            while error < np.pi:
+            while error < -np.pi:
                 error += 2*np.pi
         self._integrateError(error)
         self._differentiateY(y)
 
-        u_unsat = self.kp*error + self.ki*self.error_int + self.kd*self.y_dot
+        u_unsat = self.kp*error + self.ki*self.error_int - self.kd*self.y_dot
         u_sat = self._saturate(u_unsat)
 
         if not self.ki == 0:
@@ -41,7 +41,7 @@ class pid_control:
         error = y_ref - y
         self._integrateError(error)
 
-        u_unsat = self.kp*error + self.ki*self.error_int + self.kd*ydot
+        u_unsat = self.kp*error + self.ki*self.error_int - self.kd*ydot
         u_sat = self._saturate(u_unsat)
 
         if not self.ki == 0:
@@ -52,14 +52,14 @@ class pid_control:
     def _saturate(self, u):
         if u > self.up_limit:
             u_sat = self.up_limit
-        elif u < -self.low_limit:
-            u_sat = -self.low_limit
+        elif u < self.low_limit:
+            u_sat = self.low_limit
         else:
             u_sat = u
         return u_sat
 
     def _integrateError(self, error):
-        self.error_int += self.Ts/2.0 * (error - self.error_d1)
+        self.error_int += self.Ts/2.0 * (error + self.error_d1)
         self.error_d1 = error
 
     def _differentiateY(self, y):

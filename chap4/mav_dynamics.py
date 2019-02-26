@@ -13,7 +13,7 @@ from message_types.msg_state import msg_state
 
 import params.aerosonde_params as MAV
 from tools.tools import Quaternion2Rotation, Quaternion2Euler, Euler2Rotation
-from math import exp
+from math import exp, asin, acos
 
 class mav_dynamics:
     def __init__(self, Ts):
@@ -271,7 +271,22 @@ class mav_dynamics:
         self.msg_true_state.r = self._state.item(12)
         self.msg_true_state.wn = self._wind.item(0)
         self.msg_true_state.we = self._wind.item(1)
+        self._update_gamma_chi()
 
+    def _update_gamma_chi(self):
+        Rv_b = Quaternion2Rotation(self._state[6:10])
+        Vg = Rv_b @ self._state[3:6]
+
+        gamma = asin(-Vg.item(2)/np.linalg.norm(Vg))
+        self.msg_true_state.gamma = gamma
+
+        #Vg_horz = Vg * np.cos(gamma)
+        #e1 = np.array([[1,0,0]]).T
+        #chi = acos(e1.T @ Vg_horz / np.linalg.norm(Vg_horz))
+        #if Vg_horz.item(1) < 0:
+        #    chi *= -1
+        chi = np.arctan2(Vg.item(1),Vg.item(0))
+        self.msg_true_state.chi = chi
 
     def calcLonDynamics(self, de):
         M = MAV.M

@@ -25,11 +25,11 @@ class autopilot:
                         ki=AP.course_ki,
                         Ts=ts_control,
                         limits=[-np.radians(30),np.radians(30)])
-        self.sideslip_from_rudder = pid_control( # pi
-                        kp=AP.sideslip_kp,
-                        ki=AP.sideslip_ki,
-                        Ts=ts_control,
-                        limits=[-np.radians(45),np.radians(45)])
+        #self.sideslip_from_rudder = pid_control( # pi
+        #                kp=AP.sideslip_kp,
+        #                ki=AP.sideslip_ki,
+        #                Ts=ts_control,
+        #                limits=[-np.radians(45),np.radians(45)])
         self.yaw_damper = transfer_function(
                         num=np.array([[AP.yaw_damper_kp, 0]]),
                         den=np.array([[1, 1/AP.yaw_damper_tau_r]]),
@@ -57,6 +57,8 @@ class autopilot:
         # phi_feedforward
 
         # lateral autopilot
+        #cmd.course_command = np.radians(0.0)
+        #phi_c = np.radians(20.0)
         phi_c = self.course_from_roll.update(cmd.course_command,state.chi,True)
         delta_a = self.roll_from_aileron.update_with_rate(phi_c,state.phi, \
                        state.p)
@@ -64,10 +66,12 @@ class autopilot:
 
         # longitudinal autopilot
         h_c = cmd.altitude_command
+        #theta_c = np.radians(20.0)
         theta_c = self.altitude_from_pitch.update(h_c,state.h)
         delta_e = self.pitch_from_elevator.update_with_rate(theta_c, \
                        state.theta, state.q)
         delta_t = self.airspeed_from_throttle.update(cmd.airspeed_command, \
+        #delta_t = self.airspeed_from_throttle.update(27.0, \
                        state.Va)
 
         # construct output and commanded states
@@ -80,11 +84,11 @@ class autopilot:
         
         return delta, self.commanded_state
 
-    def saturate(self, input, low_limit, up_limit):
-        if input < low_limit:
+    def saturate(self, val, low_limit, up_limit):
+        if val < low_limit:
             output = low_limit
-        elif input > up_limit:
+        elif val > up_limit:
             output = up_limit
         else:
-            output = input
+            output = val
         return output

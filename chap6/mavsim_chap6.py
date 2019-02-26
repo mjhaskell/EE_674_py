@@ -38,12 +38,14 @@ sim_time = SIM.start_time
 # main simulation loop
 print("Press Command-Q to exit...")
 while sim_time < SIM.end_time:
-
     #-------controller-------------
     estimated_state = mav.msg_true_state  # uses true states in the control
     commands.airspeed_command = Va_command.square(sim_time)
+    #commands.airspeed_command = 25.0 #Va_command.square(sim_time)
     commands.course_command = chi_command.square(sim_time)
+    #commands.course_command = 0.0 #chi_command.square(sim_time)
     commands.altitude_command = h_command.square(sim_time)
+    #commands.altitude_command = 100.0 #h_command.square(sim_time)
     delta, commanded_state = ctrl.update(commands, estimated_state)
 
     #-------physical system-------------
@@ -60,3 +62,4 @@ while sim_time < SIM.end_time:
     #-------increment time-------------
     sim_time += SIM.ts_simulation
 
+input('Press ENTER to close ...')
