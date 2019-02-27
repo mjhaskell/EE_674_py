@@ -17,6 +17,9 @@ import params.sensor_params as SENSOR
 from tools.tools import Quaternion2Rotation, Quaternion2Euler, Euler2Rotation
 from math import exp, asin, acos
 
+def rand(sigma, mean=0):
+    return mean + sigma * np.random.randn(1).item(0)
+
 class mav_dynamics:
     def __init__(self, Ts):
         self._ts_simulation = Ts
@@ -98,23 +101,39 @@ class mav_dynamics:
     def update_sensors(self):
         '''Return value of sensors on MAV: gyros, accels, static_pressure,
         dynamic_pressure, GPS'''
-        self.sensors.gyro_x = 
-        self.sensors.gyro_y = 
-        self.sensors.gyro_z = 
-        self.sensors.accel_x = 
-        self.sensors.accel_y = 
-        self.sensors.accel_z = 
-        self.sensors.static_pressure = 
-        self.sensors.diff_pressure = 
+        a_sig = SENSOR.accel_sigma
+        g_sig = SENSOR.gyro_sigma
+        m = MAV.mass
+        p = self._state.item(10)
+        q = self._state.item(11)
+        r = self._state.item(12)
+        pVa2_2 = MAV.rho * self._Va**2 / 2
+        pgh = MAV.rho * MAV.gravity * -self._state.item(3)
+        P_static_bias = 0
+        P_diff_bias = 0
+        ps_sig = SENSOR.static_pres_sigma
+        pd_sig = SENSOR.diff_pres_sigma
+
+        self.sensors.gyro_x = p + rand(g_sig,SENSOR.gyro_x_bias) 
+        self.sensors.gyro_y = q + rand(g_sig,SENSOR.gyro_y_bias)
+        self.sensors.gyro_z = r + rand(g_sig,SENSOR.gyro_z_bias)
+        self.sensors.accel_x = self._forces.item(0)/m + rand(a_sig)
+        self.sensors.accel_y = self._forces.item(1)/m + rand(a_sig)
+        self.sensors.accel_z = self._forces.item(2)/m + rand(a_sig)
+        self.sensors.static_pressure = pgh + rand(ps_sig,P_static_bias)
+        self.sensors.diff_pressure = pVa2_2 + rand(pd_sig,P_diff_bias)
         if self._t_gps >= SENSOR.ts_gps:
-            self._gps_eta_n = 
-            self._gps_eta_e = 
-            self._gps_eta_h = 
-            self.sensors.gps_n = 
-            self.sensors.gps_e = 
-            self.sensors.gps_h = 
-            self.sensors.gps_Vg = 
-            self.sensors.gps_course = 
+            Vg_sig = SENSOR.gps_Vg_sigma
+            chi_sig = SENSOR.gps_course_sigma
+            C_gps = exp(-SENSOR.gps_beta*SENSOR.ts_gps)
+            self._gps_eta_n = C_gps*self._gps_eta_n + rand(SENSOR.gps_n_sigma)
+            self._gps_eta_e = C_gps*self._gps_eta_e + rand(SENSOR.gps_e_sigma)
+            self._gps_eta_h = C_gps*self._gps_eta_h + rand(SENSOR.gps_h_sigma)
+            self.sensors.gps_n = self._state.item(0) + self._gps_eta_n
+            self.sensors.gps_e = self._state.item(1) + self._gps_eta_e
+            self.sensors.gps_h = -self._state.item(2) + self._gps_eta_h
+            self.sensors.gps_Vg = np.linalg.norm(self._state[3:6])+rand(Vg_sig)
+            self.sensors.gps_course = self.msg_true_state.chi + rand(chi_sig)
             self._t_gps = 0.
         else:
             self._t_gps += self._ts_simulation
@@ -267,12 +286,9 @@ class mav_dynamics:
 
         # longitudinal forces and moments
         fx,fz,m = self.calcLonDynamics(delta.item(0))
-        fx += fb_grav.item(0)
-        fz += fb_grav.item(2)
 
         # lateral forces and moments
         fy,l,n = self.calcLatDynamics(delta.item(2),delta.item(3))
-        fy += fb_grav.item(1)
 
         # propeller/motor forces and moments
         fp,mp = self.calcMotorDynamics(self._Va, delta.item(1))
@@ -282,6 +298,10 @@ class mav_dynamics:
         self._forces[0] = fx
         self._forces[1] = fy
         self._forces[2] = fz
+
+        fx += fb_grav.item(0)
+        fy += fb_grav.item(1)
+        fz += fb_grav.item(2)
         return np.array([[fx, fy, fz, l, m, n]]).T
 
     def _update_msg_true_state(self):
