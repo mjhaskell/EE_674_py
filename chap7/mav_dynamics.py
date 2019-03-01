@@ -129,10 +129,10 @@ class mav_dynamics:
             self._gps_eta_n = C_gps*self._gps_eta_n + rand(SENSOR.gps_n_sigma)
             self._gps_eta_e = C_gps*self._gps_eta_e + rand(SENSOR.gps_e_sigma)
             self._gps_eta_h = C_gps*self._gps_eta_h + rand(SENSOR.gps_h_sigma)
-            self.sensors.gps_n = self._state.item(0) + self._gps_eta_n
-            self.sensors.gps_e = self._state.item(1) + self._gps_eta_e
+            self.sensors.gps_n =  self._state.item(0) + self._gps_eta_n
+            self.sensors.gps_e =  self._state.item(1) + self._gps_eta_e
             self.sensors.gps_h = -self._state.item(2) + self._gps_eta_h
-            self.sensors.gps_Vg = np.linalg.norm(self._state[3:6])+rand(Vg_sig)
+            self.sensors.gps_Vg = self.msg_true_state.Vg + rand(Vg_sig)
             self.sensors.gps_course = self.msg_true_state.chi + rand(chi_sig)
             self._t_gps = 0.
         else:
