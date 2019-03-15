@@ -108,7 +108,7 @@ class mav_dynamics:
         q = self._state.item(11)
         r = self._state.item(12)
         pVa2_2 = MAV.rho * self._Va**2 / 2
-        pgh = MAV.rho * MAV.gravity * -self._state.item(3)
+        pgh = MAV.rho * MAV.gravity * -self._state.item(2)
         P_static_bias = 0
         P_diff_bias = 0
         ps_sig = SENSOR.static_pres_sigma
