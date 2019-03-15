@@ -37,9 +37,12 @@ class observer:
     def update(self, measurements):
 
         # estimates for p, q, r are low pass filter of gyro minus bias estimate
-        self.estimated_state.p = self.lpf_gyro_x.update(measurements.gyro_x)
-        self.estimated_state.q = self.lpf_gyro_y.update(measurements.gyro_y)
-        self.estimated_state.r = self.lpf_gyro_z.update(measurements.gyro_z)
+        bx = self.estimated_state.bx
+        by = self.estimated_state.by
+        bz = self.estimated_state.bz
+        self.estimated_state.p = self.lpf_gyro_x.update(measurements.gyro_x-bx)
+        self.estimated_state.q = self.lpf_gyro_y.update(measurements.gyro_y-by)
+        self.estimated_state.r = self.lpf_gyro_z.update(measurements.gyro_z-bz)
 
         # invert sensor model to get altitude and airspeed
         rho = MAV.rho
@@ -61,6 +64,7 @@ class observer:
         self.estimated_state.bx = 0.0
         self.estimated_state.by = 0.0
         self.estimated_state.bz = 0.0
+
         return self.estimated_state
 
 class alpha_filter:
@@ -77,11 +81,11 @@ class alpha_filter:
 class ekf_attitude:
     # implement continous-discrete EKF to estimate roll and pitch angles
     def __init__(self):
-        self.Q = np.eye(2) * 0.001**2
+        self.Q = np.eye(2) * 1e-6
         self.Q_gyro = np.eye(3)*SENSOR.gyro_sigma**2
         self.R_accel = np.eye(3)*SENSOR.accel_sigma**2
         self.N = 10  # number of prediction step per sample
-        self.xhat = np.array([[0,0]]).T # initial state: phi, theta
+        self.xhat = np.array([[0.0, 0.0]]).T # initial state: phi, theta
         self.P = np.eye(2)*0.1
         self.Ts = SIM.ts_control/self.N
 
@@ -131,13 +135,13 @@ class ekf_attitude:
             A = jacobian(self.f, self.xhat, state)
             # compute G matrix for gyro noise
             G = np.array([
-                [1, np.sin(phi)*np.tan(theta), np.cos(phi)*np.tan(theta)],
-                [0, np.cos(phi), -np.sin(phi)]
+                [1.0, np.sin(phi)*np.tan(theta), np.cos(phi)*np.tan(theta)],
+                [0.0, np.cos(phi), -np.sin(phi)]
                 ])
             # update P with continuous time model
             # self.P = self.P + self.Ts * (A @ self.P + self.P @ A.T + self.Q + G @ self.Q_gyro @ G.T)
             # convert to discrete time models
-            A_d = np.eye(2) + A*self.Ts + A@A*(self.Ts**2) / 2
+            A_d = np.eye(2) + A*self.Ts + (A@A)*(self.Ts**2) / 2.0
             G_d = G * self.Ts
             # update P with discrete time model
             self.P = A_d@self.P@A_d.T + G_d@self.Q_gyro@G_d.T + \
@@ -160,9 +164,9 @@ class ekf_position:
     # implement continous-discrete EKF to estimate pn, pe, chi, Vg
     def __init__(self):
         #self.Q = np.eye(7) * 0.1**2
-        self.Q = np.array([[0.01,0.01,0.01,0.01,0.01,0.01,0.01]]).T
-        self.R_gps = np.diag([SENSOR.gps_n_sigma, SENSOR.gps_e_sigma,
-                          SENSOR.gps_Vg_sigma, SENSOR.gps_course_sigma])
+        self.Q = np.diag([0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01])
+        self.R_gps = np.diag([SENSOR.gps_n_sigma**2, SENSOR.gps_e_sigma**2,
+                          SENSOR.gps_Vg_sigma**2, SENSOR.gps_course_sigma**2])
         self.R_pseudo = np.diag([0.01,0.01])
         self.N = 25  # number of prediction step per sample
         self.Ts = (SIM.ts_control / self.N)
@@ -250,7 +254,8 @@ class ekf_position:
         y = np.array([[0, 0]]).T
 
         L = self.P @ C.T @ np.linalg.inv(self.R_pseudo+ C @ self.P @ C.T)
-        self.P = (np.eye(7) - L @ C) @ self.P
+        self.P = (np.eye(7) - L @ C) @ self.P @ (np.eye(7) - L @ C).T + \
+                  L @ self.R_pseudo @ L.T
         self.xhat += L@(y - h)
 
         # only update GPS when one of the signals changes
@@ -265,7 +270,11 @@ class ekf_position:
                            measurement.gps_Vg, measurement.gps_course]]).T
 
             L = self.P @ C.T @ np.linalg.inv(self.R_gps + C @ self.P @ C.T)
-            self.P = (np.eye(7) - L @ C) @ self.P
+
+            y[3,0] = self.wrap(y[3,0], h[3,0])
+
+            self.P = (np.eye(7) - L @ C) @ self.P @ (np.eye(7) - L @ C).T + \
+                      L @ self.R_gps @ L.T
             self.xhat += L @ (y - h)
              
             # update stored GPS signals
