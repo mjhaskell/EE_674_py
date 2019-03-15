@@ -48,6 +48,7 @@ while sim_time < SIM.end_time:
     #-------controller-------------
     measurements = mav.sensors
     estimated_state = obsv.update(measurements) 
+    #estimated_state = mav.msg_true_state
     delta, commanded_state = ctrl.update(commands, estimated_state)
 
     #-------physical system-------------
