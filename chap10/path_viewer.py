@@ -13,7 +13,7 @@ import pyqtgraph as pg
 import pyqtgraph.opengl as gl
 import pyqtgraph.Vector as Vector
 
-from tools.rotations import Euler2Rotation
+from tools.tools import Euler2Rotation
 
 class path_viewer():
     def __init__(self):
