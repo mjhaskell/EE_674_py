@@ -13,7 +13,7 @@ import pyqtgraph.opengl as gl
 import pyqtgraph.Vector as Vector
 
 from tools.rotations import Euler2Rotation
-from chap11.dubins_parameters import dubins_parameters
+from chap11.dubins_params import dubins_params
 
 class waypoint_viewer():
     def __init__(self):
@@ -34,7 +34,7 @@ class waypoint_viewer():
         # get points that define the non-rotated, non-translated mav and the mesh colors
         self.mav_points, self.mav_meshColors = self.get_mav_points()
         # dubins path parameters
-        self.dubins_path = dubins_parameters()
+        self.dubins_path = dubins_params()
         self.mav_body = []
 
     ###################################

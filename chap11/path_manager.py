@@ -1,7 +1,7 @@
 import numpy as np
 import sys
 sys.path.append('..')
-from chap11.dubins_parameters import dubins_parameters
+from chap11.dubins_params import dubins_params
 from message_types.msg_path import msg_path
 
 class path_manager:
@@ -20,9 +20,12 @@ class path_manager:
         # state of the manager state machine
         self.manager_state = 1
         # dubins path parameters
-        self.dubins_path = dubins_parameters()
+        self.dubins_path = dubins_params()
 
     def update(self, waypoints, radius, state):
+        if waypoints.flag_waypoints_changed:
+            self.num_waypoints = waypoints.num_waypoints
+
         if waypoints.type == 'straight_line':
             self.line_manager(waypoints, state)
         elif waypoints.type == 'fillet':
@@ -34,6 +37,12 @@ class path_manager:
         return self.path
 
     def line_manager(self, waypoints, state):
+        w_im1 = wayoints.ned[:,self.ptr_previous].reshape(3,1)
+        w_i = wayoints.ned[:,self.ptr_current].reshape(3,1)
+        w_ip1 = wayoints.ned[:,self.ptr_next].reshape(3,1)
+        
+        q_i = w_ip1 - w_i
+        q_i /= np.linalg.norm(q_i)
 
     def fillet_manager(self, waypoints, radius, state):
 
