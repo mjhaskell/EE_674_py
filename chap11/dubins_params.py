@@ -10,7 +10,7 @@ import numpy as np
 import sys
 sys.path.append('..')
 
-class dubins_parameters:
+class dubins_params:
     def __init__(self):
         self.p_s = np.inf*np.ones((3,1))  # the start position in re^3
         self.chi_s = np.inf  # the start course angle
@@ -33,22 +33,32 @@ class dubins_parameters:
         if ell < 2 * R:
             print('Error in Dubins Parameters: The distance between nodes must be larger than 2R.')
         else:
+            Cxs = np.cos(chis)
+            Sxs = np.sin(chis)
+            Cxe = np.cos(chie)
+            Sxe = np.sin(chie)
+            c_rs = ps + R*rotz(np.pi/2) @ np.array([[Cxs,Sxs,0]]).T
+            c_ls = ps + R*rotz(-np.pi/2) @ np.array([[Cxs,Sxs,0]]).T
+            c_re = pe + R*rotz(np.pi/2) @ np.array([[Cxe,Sxe,0]]).T
+            c_le = pe + R*rotz(-np.pi/2) @ np.array([[Cxe,Sxe,0]]).T
+            # compute L1,L2,L3,L4
+            L1 = np.linalg.norm(c_rs-c_re)+R*()#TODO finish this fn
 
-            self.p_s =
-            self.chi_s =
-            self.p_e =
-            self.chi_e =
-            self.radius =
-            self.length =
-            self.center_s =
-            self.dir_s =
-            self.center_e =
-            self.dir_e =
-            self.r1 =
-            self.n1 =
-            self.r2 =
-            self.r3 =
-            self.n3 =
+            self.p_s = ps
+            self.chi_s = chis
+            self.p_e = pe
+            self.chi_e = chie
+            self.radius = R
+            self.length = 0
+            self.center_s = 0
+            self.dir_s = 0
+            self.center_e = 0
+            self.dir_e = 0
+            self.r1 = 0
+            self.n1 = 0
+            self.r2 = 0
+            self.r3 = 0
+            self.n3 = 0
 
 def rotz(theta):
     return np.array([[np.cos(theta), -np.sin(theta), 0],
