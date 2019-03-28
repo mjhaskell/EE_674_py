@@ -34,8 +34,8 @@ path_manage = path_manager()
 # path definition
 from message_types.msg_waypoints import msg_waypoints
 waypoints = msg_waypoints()
-waypoints.type = 'straight_line'
-#waypoints.type = 'fillet'
+#waypoints.type = 'straight_line'
+waypoints.type = 'fillet'
 #waypoints.type = 'dubins'
 waypoints.num_waypoints = 4
 Va = PLAN.Va0
@@ -57,12 +57,14 @@ sim_time = SIM.start_time
 
 # main simulation loop
 print("Press Command-Q to exit...")
-while sim_time < SIM.end_time:
+while sim_time < 200:
     #-------observer-------------
     measurements = mav.sensors  # get sensor measurements
     estimated_state = obsv.update(measurements)  # estimate states from measurements
 
     #-------path manager--------------
+    if not sim_time == 0.0:
+        waypoints.flag_waypoints_changed = False
     path = path_manage.update(waypoints, PLAN.R_min, estimated_state)
 
     #-------path follower-------------
@@ -87,3 +89,5 @@ while sim_time < SIM.end_time:
     #-------increment time-------------
     sim_time += SIM.ts_simulation
 
+print('simulation has ended')
+input('Press ENTER to close ...')

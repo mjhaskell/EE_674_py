@@ -13,6 +13,8 @@ class msg_path:
     def __init__(self):
         # flag='line' means straight line following, flag='orbit' means orbit following
         self.flag = 'line'
+        # flag to indicate path recently changed (set by manager)
+        self.flag_path_changed = True
         # desired airspeed along the path
         self.airspeed = 25.0
         # origin of the straight path line (r)

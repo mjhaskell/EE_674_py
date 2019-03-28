@@ -12,7 +12,7 @@ import pyqtgraph as pg
 import pyqtgraph.opengl as gl
 import pyqtgraph.Vector as Vector
 
-from tools.rotations import Euler2Rotation
+from tools.tools import Euler2Rotation
 from chap11.dubins_params import dubins_params
 
 class waypoint_viewer():
@@ -196,9 +196,9 @@ class waypoint_viewer():
 
     def drawPath(self, path):
         red = np.array([[1., 0., 0., 1]])
-        if path.type == 'line':
+        if path.flag == 'line':
             points = self.straight_line_points(path)
-        elif path.type == 'orbit':
+        elif path.flag == 'orbit':
             points = self.orbit_points(path)
         if not self.plot_initialized:
             path_color = np.tile(red, (points.shape[0], 1))
