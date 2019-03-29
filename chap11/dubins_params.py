@@ -74,7 +74,7 @@ class dubins_params:
                 lam_e = 1
                 n1 = ce - cs
                 n1 /= np.linalg.norm(n1)
-                R_Rz_n1 = R*rotz(-pi.2) @ n1
+                R_Rz_n1 = R*rotz(-pi/2) @ n1
                 r1 = cs + R_Rz_n1
                 r2 = ce + R_Rz_n1
             if L == L2:

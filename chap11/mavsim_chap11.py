@@ -34,8 +34,8 @@ path_manage = path_manager()
 # path definition
 from message_types.msg_waypoints import msg_waypoints
 waypoints = msg_waypoints()
-#waypoints.type = 'straight_line'
-waypoints.type = 'fillet'
+waypoints.type = 'straight_line'
+#waypoints.type = 'fillet'
 #waypoints.type = 'dubins'
 waypoints.num_waypoints = 4
 Va = PLAN.Va0
@@ -75,7 +75,7 @@ while sim_time < 200:
     delta, commanded_state = ctrl.update(autopilot_commands, estimated_state)
 
     #-------physical system-------------
-    current_wind = wind.update(mav.msg_true_state.Va)  # get the new wind vector
+    current_wind = wind.update(mav.msg_true_state.Va*0)  # get the new wind vector
     mav.update_state(delta, current_wind)  # propagate the MAV dynamics
     mav.update_sensors()
 
