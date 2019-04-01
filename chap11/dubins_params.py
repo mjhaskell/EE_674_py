@@ -69,9 +69,9 @@ class dubins_params:
             e1 = np.array([[1,0,0]]).T
             if L == L1:
                 cs = c_rs
-                lam_s = 1
+                lam_s = 'CW'
                 ce = c_re
-                lam_e = 1
+                lam_e = 'CW'
                 n1 = ce - cs
                 n1 /= np.linalg.norm(n1)
                 R_Rz_n1 = R*rotz(-pi/2) @ n1
@@ -79,9 +79,9 @@ class dubins_params:
                 r2 = ce + R_Rz_n1
             if L == L2:
                 cs = c_rs
-                lam_s = 1
+                lam_s = 'CW'
                 ce = c_le
-                lam_e = -1
+                lam_e = 'CCW'
                 diff = ce - cs
                 ell = np.linalg.norm(diff)
                 theta = np.arctan2(diff.item(1),diff.item(0))
@@ -91,9 +91,9 @@ class dubins_params:
                 r2 = ce + R*rotz(theta2+pi) @ e1
             elif L == L3:
                 cs = c_ls
-                lam_s = -1
+                lam_s = 'CCW'
                 ce = c_re
-                lam_e = 1
+                lam_e = 'CW'
                 diff = ce - cs
                 ell = np.linalg.norm(diff)
                 theta = np.arctan2(diff.item(1),diff.item(0))
@@ -103,11 +103,11 @@ class dubins_params:
                 r2 = ce + R*rotz(theta+theta2-pi) @ e1
             elif L == L4:
                 cs = c_ls
-                lam_s = -1
+                lam_s = 'CCW'
                 ce = c_le
-                lam_e = -1
-                q1 = ce - cs
-                q1 /= np.linalg.norm(q1)
+                lam_e = 'CCw'
+                n1 = ce - cs
+                n1 /= np.linalg.norm(n1)
                 R_Rz_n1 = R*rotz(pi/2) @ n1
                 r1 = cs + R_Rz_n1
                 r2 = ce + R_Rz_n1

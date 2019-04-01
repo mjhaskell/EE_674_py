@@ -266,6 +266,7 @@ class waypoint_viewer():
 
     def dubins_points(self, waypoints, Del):
         # points along start circle
+        print(self.dubins_path.center_s)
         th1 = np.arctan2(self.dubins_path.p_s.item(1) - self.dubins_path.center_s.item(1),
                          self.dubins_path.p_s.item(0) - self.dubins_path.center_s.item(0))
         th1 = th1 % 2*np.pi  # modulo 2*pi
