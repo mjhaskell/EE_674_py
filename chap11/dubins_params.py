@@ -42,19 +42,33 @@ class dubins_params:
             c_ls = ps + R*rotz(-np.pi/2) @ np.array([[Cxs,Sxs,0]]).T
             c_re = pe + R*rotz(np.pi/2) @ np.array([[Cxe,Sxe,0]]).T
             c_le = pe + R*rotz(-np.pi/2) @ np.array([[Cxe,Sxe,0]]).T
-            theta = np.arctan2(ps.item(1)-pe.item(1),ps.item(0)-pe.item(0))
-            theta2 = theta - np.arccos(2*R/ell)
             pi = np.pi
-            sqrt = np.sqrt(ell**2 - 4*R**2)
-            # compute L1,L2,L3,L4
+            # compute L1
+            theta = np.arctan2(c_re.item(1)-c_rs.item(1),c_re.item(0)-c_rs.item(0))
             L1 = np.linalg.norm(c_rs-c_re)+R*mod(2*pi+mod(theta-pi/2)-\
                     mod(chis-pi/2))+R*mod(2*pi+mod(chie-pi/2)-mod(theta-pi/2))
-            L2 = sqrt*mod(2*pi+mod(theta-theta2)-mod(chis-pi/2))+\
-                    R*mod(2*pi+mod(theta2+pi)-mod(chie+pi/2))
+            # compute L2
+            ell = np.linalg.norm(c_le - c_rs)
+            theta = np.arctan2(c_le.item(1)-c_rs.item(1),c_le.item(0)-c_rs.item(0))
+            theta2 = theta - pi/2 + np.arcsin(2*R/ell)
+            if not np.isreal(theta2):
+                L2 = np.inf
+            else:
+                sqrt = np.sqrt(ell**2 - 4*R**2)
+                L2 = sqrt+R*mod(2*pi+mod(theta-theta2)-mod(chis-pi/2))+\
+                          R*mod(2*pi+mod(theta2+pi)-mod(chie+pi/2))
+            # compute L3
+            ell = np.linalg.norm(c_re - c_ls)
+            theta = np.arctan2(c_re.item(1)-c_ls.item(1),c_re.item(0)-c_ls.item(0))
+            theta2 = np.arccos(2*R/ell)
+            sqrt = np.sqrt(ell**2 - 4*R**2)
             L3 = sqrt+R*mod(2*pi+mod(chis+pi/2)-mod(theta-theta2))+R*mod(\
                     2*pi+mod(chie-pi/2)-mod(theta+theta2-pi))
-            L4 = np.linalg.norm(c_ls-c_le)+R*mod(2*pi+mod(chis+pi/2)-\
-                    mod(theta+pi/2))+R*mod(2*pi+mod(theta+pi/2)-mod(chie-pi/2))
+            # compute L4
+            ell = np.linalg.norm(c_ls - c_le)
+            theta = np.arctan2(c_le.item(1)-c_ls.item(1),c_le.item(0)-c_ls.item(0))
+            L4 = ell+R*mod(2*pi+mod(chis+pi/2)-mod(theta+pi/2))+\
+                    R*mod(2*pi+mod(theta+pi/2)-mod(chie+pi/2))
             L = min(min(L1,L2),min(L3,L4))
             
             cs = 0
@@ -68,20 +82,22 @@ class dubins_params:
             n3 = 0
             e1 = np.array([[1,0,0]]).T
             if L == L1:
+                print('chose L1')
                 cs = c_rs
-                lam_s = 'CW'
+                lam_s = 1
                 ce = c_re
-                lam_e = 'CW'
+                lam_e = 1
                 n1 = ce - cs
                 n1 /= np.linalg.norm(n1)
                 R_Rz_n1 = R*rotz(-pi/2) @ n1
                 r1 = cs + R_Rz_n1
                 r2 = ce + R_Rz_n1
             if L == L2:
+                print('chose L2')
                 cs = c_rs
-                lam_s = 'CW'
+                lam_s = 1
                 ce = c_le
-                lam_e = 'CCW'
+                lam_e = -1
                 diff = ce - cs
                 ell = np.linalg.norm(diff)
                 theta = np.arctan2(diff.item(1),diff.item(0))
@@ -90,10 +106,11 @@ class dubins_params:
                 r1 = cs + R*rotz(theta2) @ e1
                 r2 = ce + R*rotz(theta2+pi) @ e1
             elif L == L3:
+                print('chose L3')
                 cs = c_ls
-                lam_s = 'CCW'
+                lam_s = -1
                 ce = c_re
-                lam_e = 'CW'
+                lam_e = 1
                 diff = ce - cs
                 ell = np.linalg.norm(diff)
                 theta = np.arctan2(diff.item(1),diff.item(0))
@@ -102,10 +119,11 @@ class dubins_params:
                 r1 = cs + R*rotz(theta+theta2) @ e1
                 r2 = ce + R*rotz(theta+theta2-pi) @ e1
             elif L == L4:
+                print('chose L4')
                 cs = c_ls
-                lam_s = 'CCW'
+                lam_s = -1
                 ce = c_le
-                lam_e = 'CCw'
+                lam_e = -1
                 n1 = ce - cs
                 n1 /= np.linalg.norm(n1)
                 R_Rz_n1 = R*rotz(pi/2) @ n1

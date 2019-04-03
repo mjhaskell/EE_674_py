@@ -145,7 +145,10 @@ class path_manager:
             self.path.flag = 'orbit'
             self.path.orbit_center = self.dubins_path.center_s
             self.path.orbit_radius = radius
-            self.path.orbit_direction = self.dubins_path.dir_s
+            if self.dubins_path.dir_s > 0:
+                self.path.orbit_direction = 'CW'
+            else:
+                self.path.orbit_direction = 'CCW'
             self.halfspace_n = self.dubins_path.n1
             self.halfspace_r = self.dubins_path.r1
             if self.inHalfSpace(p):
@@ -175,7 +178,10 @@ class path_manager:
         elif self.manager_state == 4:
             self.path.flag = 'orbit'
             self.path.orbit_center = self.dubins_path.center_e
-            self.path.orbit_direction = self.dubins_path.dir_e
+            if self.dubins_path.dir_e > 0:
+                self.path.orbit_direction = 'CW'
+            else:
+                self.path.orbit_direction = 'CCW'
             self.halfspace_n = self.dubins_path.n3
             self.halfspace_r = self.dubins_path.r3
             if self.inHalfSpace(p):
