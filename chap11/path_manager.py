@@ -22,6 +22,7 @@ class path_manager:
         self.manager_state = 1
         # dubins path parameters
         self.dubins_path = dubins_params()
+        self.dubins_state_changed = True
 
     def update(self, waypoints, radius, state):
         if waypoints.flag_waypoints_changed:
@@ -150,6 +151,8 @@ class path_manager:
             self.dubins_path.update(ps,chis,pe,chie,radius)
 
         if self.manager_state == 1:
+            self.path.flag_path_changed = self.dubins_state_changed
+            self.dubins_state_changed = False
             self.path.flag = 'orbit'
             self.path.orbit_center = self.dubins_path.center_s
             self.path.orbit_radius = radius
@@ -161,19 +164,25 @@ class path_manager:
             self.halfspace_n = self.dubins_path.n1
             self.halfspace_r = self.dubins_path.r1
             if self.inHalfSpace(p):
+                print('entered state 2')
                 self.manager_state = 2
-                self.path.flag_path_changed = True
-            else:
-                self.path.flag_path_changed = False
+                self.dubins_state_changed = True
         elif self.manager_state == 2:
+            self.path.flag_path_changed = self.dubins_state_changed
+            self.dubins_state_changed = False
+            self.path.flag = 'line'
+            self.path.line_origin = self.dubins_path.r1
+            self.path.line_direction = self.dubins_path.n1
+
             self.halfspace_n = self.dubins_path.n1
             self.halfspace_r = self.dubins_path.r1
             if self.inHalfSpace(p):
+                print('entered state 3')
                 self.manager_state = 3
-                self.path.flag_path_changed = True
-            else:
-                self.path.flag_path_changed = False
+                self.dubins_state_changed = True
         elif self.manager_state == 3:
+            self.path.flag_path_changed = self.dubins_state_changed
+            self.dubins_state_changed = False
             self.path.flag = 'line'
             self.path.line_origin = self.dubins_path.r1
             self.path.line_direction = self.dubins_path.n1
@@ -181,11 +190,12 @@ class path_manager:
             self.halfspace_n = self.dubins_path.n1
             self.halfspace_r = self.dubins_path.r2
             if self.inHalfSpace(p):
+                print('entered state 4')
                 self.manager_state = 4
-                self.path.flag_path_changed = True
-            else:
-                self.path.flag_path_changed = False
+                self.dubins_state_changed = True
         elif self.manager_state == 4:
+            self.path.flag_path_changed = self.dubins_state_changed
+            self.dubins_state_changed = False
             self.path.flag = 'orbit'
             self.path.orbit_center = self.dubins_path.center_e
             if self.dubins_path.dir_e > 0:
@@ -196,19 +206,18 @@ class path_manager:
             self.halfspace_n = self.dubins_path.n3
             self.halfspace_r = self.dubins_path.r3
             if self.inHalfSpace(p):
+                print('entered state 5')
                 self.manager_state = 5
-                self.path.flag_path_changed = True
-            else:
-                self.path.flag_path_changed = False
+                self.path.dubins_state_changed = True
         else:
+            self.path.flag_path_changed = self.dubins_state_changed
+            self.dubins_state_changed = False
             self.halfspace_n = self.dubins_path.n3
             self.halfspace_r = self.dubins_path.r3
             if self.inHalfSpace(p):
                 self.manager_state = 1
-                self.path.flag_path_changed = True
+                self.path.dubins_state_changed = True
                 self.increment_pointers()
-            else:
-                self.path.flag_path_changed = False 
 
     def initialize_pointers(self):
         self.ptr_previous = 0
