@@ -29,8 +29,11 @@ class path_manager:
             self.num_waypoints = waypoints.num_waypoints
             self.initialize_pointers()
             self.manager_state = 1
+            self.flag_need_new_waypoints = False
+
         if self.path.flag_path_changed:
             self.path.flag_path_changed = False
+
         if waypoints.num_waypoints == 0:
             waypoints.flag_manager_requests_waypoints = True
         else:
@@ -61,6 +64,9 @@ class path_manager:
 
         self.halfspace_r = w_i
         self.halfspace_n = n_i
+
+        self.path.airspeed = waypoints.airspeed.item(self.ptr_current)
+        self.path.flag = 'line'
 
         if self.inHalfSpace(p):
             self.increment_pointers()
@@ -93,6 +99,7 @@ class path_manager:
             self.path.flag = 'line'
             self.path.line_origin = w_im1
             self.path.line_direction = q_im1
+            self.path.airspeed = waypoints.airspeed.item(self.ptr_current)
 
             z = w_i - (radius/np.tan(var_phi/2.0))*q_im1
             self.halfspace_r = z
@@ -104,13 +111,14 @@ class path_manager:
             else:
                 self.path.flag_path_changed = False
 
-        elif self.manager_state == 2:
-            self.path.flag = 'orbit'
+        else:
             direction = (q_im1-q_i)
             direction /= np.linalg.norm(direction)
             c = w_i - (radius/np.sin(var_phi/2.0))*direction
             lam = np.sign(q_im1.item(0)*q_i.item(1)-q_im1.item(1)*q_i.item(0))
 
+            self.path.flag = 'orbit'
+            self.path.airspeed = waypoints.airspeed.item(self.ptr_current)
             self.path.orbit_center = c
             self.path.orbit_radius = radius
             if lam > 0:
@@ -131,15 +139,15 @@ class path_manager:
 
     def dubins_manager(self, waypoints, radius, state):
         p = np.array([[state.pn, state.pe, -state.h]]).T
+        self.path.airspeed = waypoints.airspeed.item(self.ptr_current)
 
         if self.ptrs_updated:
-            w_im1 = waypoints.ned[:,self.ptr_previous].reshape(3,1)
-            w_i = waypoints.ned[:,self.ptr_current].reshape(3,1)
-            w_ip1 = waypoints.ned[:,self.ptr_next].reshape(3,1)
-            chi_im1 = np.arctan2(w_im1.item(1),w_im1.item(0))
-            chi_i = np.arctan2(w_i.item(1),w_i.item(0))
-            self.dubins_path.update(w_im1,chi_im1,w_i,chi_i,radius)
             self.ptrs_updated = False
+            ps = waypoints.ned[:,self.ptr_previous].reshape(3,1)
+            pe = waypoints.ned[:,self.ptr_current].reshape(3,1)
+            chis = waypoints.course.item(self.ptr_previous)
+            chie = waypoints.course.item(self.ptr_current)
+            self.dubins_path.update(ps,chis,pe,chie,radius)
 
         if self.manager_state == 1:
             self.path.flag = 'orbit'
@@ -149,6 +157,7 @@ class path_manager:
                 self.path.orbit_direction = 'CW'
             else:
                 self.path.orbit_direction = 'CCW'
+
             self.halfspace_n = self.dubins_path.n1
             self.halfspace_r = self.dubins_path.r1
             if self.inHalfSpace(p):
@@ -168,7 +177,8 @@ class path_manager:
             self.path.flag = 'line'
             self.path.line_origin = self.dubins_path.r1
             self.path.line_direction = self.dubins_path.n1
-            self.halfspace_n = self.dubins_path.n2
+
+            self.halfspace_n = self.dubins_path.n1
             self.halfspace_r = self.dubins_path.r2
             if self.inHalfSpace(p):
                 self.manager_state = 4
@@ -182,6 +192,7 @@ class path_manager:
                 self.path.orbit_direction = 'CW'
             else:
                 self.path.orbit_direction = 'CCW'
+
             self.halfspace_n = self.dubins_path.n3
             self.halfspace_r = self.dubins_path.r3
             if self.inHalfSpace(p):

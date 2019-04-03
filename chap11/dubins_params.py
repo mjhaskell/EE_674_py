@@ -26,7 +26,6 @@ class dubins_params:
         self.r2 = np.inf*np.ones((3,1))  # vector in re^3 defining position of half plane H2
         self.r3 = np.inf*np.ones((3,1))  # vector in re^3 defining position of half plane H3
         self.n1 = np.inf*np.ones((3,1))  # unit vector in re^3 along straight line path
-        self.n2 = np.inf*np.ones((3,1))  # unit vector in re^3 along straight line path
         self.n3 = np.inf*np.ones((3,1))  # unit vector defining direction of half plane H3
 
     def update(self, ps, chis, pe, chie, R):
@@ -42,74 +41,69 @@ class dubins_params:
             c_ls = ps + R*rotz(-np.pi/2) @ np.array([[Cxs,Sxs,0]]).T
             c_re = pe + R*rotz(np.pi/2) @ np.array([[Cxe,Sxe,0]]).T
             c_le = pe + R*rotz(-np.pi/2) @ np.array([[Cxe,Sxe,0]]).T
+            
             pi = np.pi
+            
             # compute L1
             theta = np.arctan2(c_re.item(1)-c_rs.item(1),c_re.item(0)-c_rs.item(0))
-            L1 = np.linalg.norm(c_rs-c_re)+R*mod(2*pi+mod(theta-pi/2)-\
-                    mod(chis-pi/2))+R*mod(2*pi+mod(chie-pi/2)-mod(theta-pi/2))
+            L1 = np.linalg.norm(c_rs-c_re) + R*mod(2*pi+mod(theta-pi/2)-\
+                    mod(chis-pi/2)) + R*mod(2*pi+mod(chie-pi/2)-mod(theta-pi/2))
+
             # compute L2
-            ell = np.linalg.norm(c_le - c_rs)
+            ell = np.linalg.norm(c_rs - c_le)
             theta = np.arctan2(c_le.item(1)-c_rs.item(1),c_le.item(0)-c_rs.item(0))
             theta2 = theta - pi/2 + np.arcsin(2*R/ell)
-            if not np.isreal(theta2):
-                L2 = np.inf
-            else:
-                sqrt = np.sqrt(ell**2 - 4*R**2)
-                L2 = sqrt+R*mod(2*pi+mod(theta-theta2)-mod(chis-pi/2))+\
-                          R*mod(2*pi+mod(theta2+pi)-mod(chie+pi/2))
-            # compute L3
-            ell = np.linalg.norm(c_re - c_ls)
-            theta = np.arctan2(c_re.item(1)-c_ls.item(1),c_re.item(0)-c_ls.item(0))
-            theta2 = np.arccos(2*R/ell)
             sqrt = np.sqrt(ell**2 - 4*R**2)
-            L3 = sqrt+R*mod(2*pi+mod(chis+pi/2)-mod(theta-theta2))+R*mod(\
+            L2 = sqrt + R*mod(2*pi+mod(theta-theta2)-mod(chis-pi/2)) +\
+                          R*mod(2*pi+mod(theta2+pi)-mod(chie+pi/2))
+
+            # compute L3
+            ell = np.linalg.norm(c_ls - c_re)
+            theta = np.arctan2(c_re.item(1)-c_ls.item(1),c_re.item(0)-c_ls.item(0))
+            theta2 = np.arcsin(2*R/ell)
+            sqrt = np.sqrt(ell**2 - 4*R**2)
+            L3 = sqrt + R*mod(2*pi+mod(chis+pi/2)-mod(theta+theta2))+R*mod(\
                     2*pi+mod(chie-pi/2)-mod(theta+theta2-pi))
+
             # compute L4
             ell = np.linalg.norm(c_ls - c_le)
             theta = np.arctan2(c_le.item(1)-c_ls.item(1),c_le.item(0)-c_ls.item(0))
-            L4 = ell+R*mod(2*pi+mod(chis+pi/2)-mod(theta+pi/2))+\
+            L4 = ell + R*mod(2*pi+mod(chis+pi/2)-mod(theta+pi/2))+\
                     R*mod(2*pi+mod(theta+pi/2)-mod(chie+pi/2))
-            L = min(min(L1,L2),min(L3,L4))
+
+            L_list = [L1, L2, L3, L4]
+            index = np.argmin(L_list)
             
-            cs = 0
-            lam_s = 0
-            ce = 0
-            lam_e = 0
-            r1 = 0
-            n1 = 0
-            r2 = 0
-            r3 = 0
-            n3 = 0
             e1 = np.array([[1,0,0]]).T
-            if L == L1:
-                print('chose L1')
+            r3 = pe
+            n3 = rotz(chie) @ e1
+            if index == 0:
                 cs = c_rs
-                lam_s = 1
                 ce = c_re
+                lam_s = 1
                 lam_e = 1
+                ell = np.linalg.norm(ce - cs)
                 n1 = ce - cs
                 n1 /= np.linalg.norm(n1)
                 R_Rz_n1 = R*rotz(-pi/2) @ n1
                 r1 = cs + R_Rz_n1
                 r2 = ce + R_Rz_n1
-            if L == L2:
-                print('chose L2')
+            elif index == 1:
                 cs = c_rs
-                lam_s = 1
                 ce = c_le
+                lam_s = 1
                 lam_e = -1
                 diff = ce - cs
                 ell = np.linalg.norm(diff)
                 theta = np.arctan2(diff.item(1),diff.item(0))
                 theta2 = theta - pi/2 + np.arcsin(2*R/ell)
-                n1 = rotz(theta2-pi/2) @ e1
+                n1 = rotz(theta2+pi/2) @ e1
                 r1 = cs + R*rotz(theta2) @ e1
                 r2 = ce + R*rotz(theta2+pi) @ e1
-            elif L == L3:
-                print('chose L3')
+            elif index == 2:
                 cs = c_ls
-                lam_s = -1
                 ce = c_re
+                lam_s = -1
                 lam_e = 1
                 diff = ce - cs
                 ell = np.linalg.norm(diff)
@@ -118,12 +112,12 @@ class dubins_params:
                 n1 = rotz(theta+theta2-pi/2) @ e1
                 r1 = cs + R*rotz(theta+theta2) @ e1
                 r2 = ce + R*rotz(theta+theta2-pi) @ e1
-            elif L == L4:
-                print('chose L4')
+            else:
                 cs = c_ls
-                lam_s = -1
                 ce = c_le
+                lam_s = -1
                 lam_e = -1
+                ell = np.linalg.norm(ce - cs)
                 n1 = ce - cs
                 n1 /= np.linalg.norm(n1)
                 R_Rz_n1 = R*rotz(pi/2) @ n1
@@ -143,9 +137,8 @@ class dubins_params:
             self.r1 = r1
             self.n1 = n1
             self.r2 = r2
-            self.n2 = self.n1
-            self.r3 = pe
-            self.n3 = rotz(chie) @ e1
+            self.r3 = r3
+            self.n3 = n3
 
 def rotz(theta):
     return np.array([[np.cos(theta), -np.sin(theta), 0],
