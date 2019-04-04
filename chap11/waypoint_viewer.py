@@ -1,4 +1,3 @@
-from IPython.core.debugger import Pdb
 """
 mavsim_python: waypoitn viewer (for chapter 11)
     - Beard & McLain, PUP, 2012
@@ -41,7 +40,6 @@ class waypoint_viewer():
     ###################################
     # public functions
     def update(self, waypoints, path, state):
-#        Pdb().set_trace()
 
         # initialize the drawing the first time update() is called
         if not self.plot_initialized:
@@ -197,7 +195,6 @@ class waypoint_viewer():
         return mesh
 
     def drawPath(self, path):
-        Pdb().set_trace()
         red = np.array([[1., 0., 0., 1]])
         if path.flag == 'line':
             points = self.straight_line_points(path)

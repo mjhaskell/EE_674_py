@@ -80,7 +80,7 @@ class path_follower:
         chi_c = chi0 + direction*atan(self.k_orbit * (d_norm-R)/R)
 
         # phi feedforward
-        phi_ff = atan(Vg**2 / (self.gravity*R*cos(chi-psi)))
+        phi_ff = direction*atan2(Vg**2 , (self.gravity*R*cos(chi-psi)))
 
         self.autopilot_commands.airspeed_command = path.airspeed
         self.autopilot_commands.course_command = chi_c

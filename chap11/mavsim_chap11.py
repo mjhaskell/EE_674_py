@@ -35,8 +35,8 @@ path_manage = path_manager()
 from message_types.msg_waypoints import msg_waypoints
 waypoints = msg_waypoints()
 #waypoints.type = 'straight_line'
-waypoints.type = 'fillet'
-#waypoints.type = 'dubins'
+#waypoints.type = 'fillet'
+waypoints.type = 'dubins'
 waypoints.flag_wrap_waypoints = True
 waypoints.num_waypoints = 4
 Va = PLAN.Va0
@@ -55,6 +55,8 @@ waypoints.course[:, 0:waypoints.num_waypoints] \
 
 # initialize the simulation time
 sim_time = SIM.start_time
+
+flag = True
 
 # main simulation loop
 print("Press Command-Q to exit...")
@@ -77,7 +79,7 @@ while sim_time < 200:
 
     #-------physical system-------------
     current_wind = wind.update(mav.msg_true_state.Va)  # get the new wind vector
-    mav.update_state(delta, current_wind*0)  # propagate the MAV dynamics
+    mav.update_state(delta, current_wind)  # propagate the MAV dynamics
     mav.update_sensors()
 
     #-------update viewer-------------
@@ -89,5 +91,9 @@ while sim_time < 200:
 
     #-------increment time-------------
     sim_time += SIM.ts_simulation
+
+    if flag:
+        input('Press ENTER to start ...')
+        flag = False
 
 input('Press ENTER to close ...')
