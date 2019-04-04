@@ -62,7 +62,7 @@ class dubins_params:
             theta = np.arctan2(c_re.item(1)-c_ls.item(1),c_re.item(0)-c_ls.item(0))
             ell = np.linalg.norm(c_ls - c_re)
             sqrt = np.sqrt(ell**2 - 4*R**2)
-            theta2 = np.arcsin(2*R/ell)
+            theta2 = np.arccos(2*R/ell)
             L3 = sqrt + R*mod(2*pi+mod(chis+pi/2)-mod(theta+theta2)) + \
                     R*mod(2*pi+mod(chie-pi/2)-mod(theta+theta2-pi))
 
@@ -96,11 +96,11 @@ class dubins_params:
                 lam_e = -1
                 diff = ce - cs
                 ell = np.linalg.norm(diff)
-                var_theta = np.arctan2(diff.item(1),diff.item(0))
-                var_theta2 = var_theta - pi/2 + np.arcsin(2*R/ell)
-                q1 = rotz(var_theta2+pi/2) @ e1
-                z1 = cs + R*rotz(var_theta2) @ e1
-                z2 = ce + R*rotz(var_theta2+pi) @ e1
+                theta = np.arctan2(diff.item(1),diff.item(0))
+                theta2 = theta - pi/2 + np.arcsin(2*R/ell)
+                q1 = rotz(theta2+pi/2) @ e1
+                z1 = cs + R*rotz(theta2) @ e1
+                z2 = ce + R*rotz(theta2+pi) @ e1
             elif index == 2:
                 cs = c_ls
                 ce = c_re
@@ -108,11 +108,11 @@ class dubins_params:
                 lam_e = 1
                 diff = ce - cs
                 ell = np.linalg.norm(diff)
-                var_theta = np.arctan2(diff.item(1),diff.item(0))
-                var_theta2 = np.arccos(2*R/ell)
-                q1 = rotz(var_theta+var_theta2-pi/2) @ e1
-                z1 = cs + R*rotz(var_theta+var_theta2) @ e1
-                z2 = ce + R*rotz(var_theta+var_theta2-pi) @ e1
+                theta = np.arctan2(diff.item(1),diff.item(0))
+                theta2 = np.arccos(2*R/ell)
+                q1 = rotz(theta+theta2-pi/2) @ e1
+                z1 = cs + R*rotz(theta+theta2) @ e1
+                z2 = ce + R*rotz(theta+theta2-pi) @ e1
             else:
                 cs = c_ls
                 ce = c_le
