@@ -1,4 +1,4 @@
-
+from IPython.core.debugger import Pdb
 """
 mavsim_python: waypoitn viewer (for chapter 11)
     - Beard & McLain, PUP, 2012
@@ -41,6 +41,7 @@ class waypoint_viewer():
     ###################################
     # public functions
     def update(self, waypoints, path, state):
+#        Pdb().set_trace()
 
         # initialize the drawing the first time update() is called
         if not self.plot_initialized:
@@ -196,6 +197,7 @@ class waypoint_viewer():
         return mesh
 
     def drawPath(self, path):
+        Pdb().set_trace()
         red = np.array([[1., 0., 0., 1]])
         if path.flag == 'line':
             points = self.straight_line_points(path)
@@ -265,17 +267,32 @@ class waypoint_viewer():
 
     def straight_waypoint_points(self, waypoints):
         R = np.array([[0, 1, 0], [1, 0, 0], [0, 0, -1]])
-        points = R @ waypoints.ned
+        if waypoints.flag_wrap_waypoints:
+            wpts = waypoints.ned[:,0:waypoints.num_waypoints]
+            wpts = np.hstack([wpts, wpts[:,0].reshape(3,1)])
+        else:
+            wpts = waypoints.ned[:,0:waypoints.num_waypoints]
+        points = R @ wpts
         return points.T
 
     def dubins_points(self, waypoints, radius, Del):
         initialize_points = True
-        for j in range(0, waypoints.num_waypoints-1):
+        if waypoints.flag_wrap_waypoints:
+            wpts = waypoints.ned[:,0:waypoints.num_waypoints]
+            wpts = np.hstack([wpts, wpts[:,0].reshape(3,1)])
+            course = waypoints.course[0,0:waypoints.num_waypoints]
+            course = np.hstack([course,np.array([course.item(0)])])
+            num = waypoints.num_waypoints
+        else:
+            wpts = waypoints.ned
+            course = waypoints.course
+            num = waypoints.num_waypoints - 1
+        for j in range(0, num):
             self.dubins_path.update(
-                waypoints.ned[:, j:j+1],
-                waypoints.course.item(j),
-                waypoints.ned[:, j+1:j+2],
-                waypoints.course.item(j+1),
+                wpts[:, j:j+1],
+                course.item(j),
+                wpts[:, j+1:j+2],
+                course.item(j+1),
                 radius)
 
             # points along start circle

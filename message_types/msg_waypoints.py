@@ -17,6 +17,8 @@ class msg_waypoints:
         self.flag_waypoints_changed = True
         # flag to indicate that the waypoint manager needs new waypoints (set by manager)
         self.flag_manager_requests_waypoints = True
+        # flag to wrap back to the first waypoint when you reach the last waypoint
+        self.flag_wrap_waypoints = True
 
         # type of waypoint following:
         #   - straight line following

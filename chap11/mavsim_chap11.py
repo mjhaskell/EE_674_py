@@ -35,8 +35,9 @@ path_manage = path_manager()
 from message_types.msg_waypoints import msg_waypoints
 waypoints = msg_waypoints()
 #waypoints.type = 'straight_line'
-#waypoints.type = 'fillet'
-waypoints.type = 'dubins'
+waypoints.type = 'fillet'
+#waypoints.type = 'dubins'
+waypoints.flag_wrap_waypoints = True
 waypoints.num_waypoints = 4
 Va = PLAN.Va0
 waypoints.ned[:, 0:waypoints.num_waypoints] \
@@ -75,8 +76,8 @@ while sim_time < 200:
     delta, commanded_state = ctrl.update(autopilot_commands, estimated_state)
 
     #-------physical system-------------
-    current_wind = wind.update(mav.msg_true_state.Va*0)  # get the new wind vector
-    mav.update_state(delta, current_wind)  # propagate the MAV dynamics
+    current_wind = wind.update(mav.msg_true_state.Va)  # get the new wind vector
+    mav.update_state(delta, current_wind*0)  # propagate the MAV dynamics
     mav.update_sensors()
 
     #-------update viewer-------------
@@ -89,5 +90,4 @@ while sim_time < 200:
     #-------increment time-------------
     sim_time += SIM.ts_simulation
 
-print('simulation has ended')
 input('Press ENTER to close ...')
