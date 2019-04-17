@@ -70,9 +70,10 @@ class path_planner:
                                     Va])
 
             waypoints = self.rrt.planPath(wpp_start, wpp_end, map)
-            self.waypoints.ned = waypoints.ned
-            self.waypoints.airspeed = waypoints.airspeed
-            self.waypoints.num_waypoints = waypoints.num_waypoints
+            self.waypoints = waypoints
+#            self.waypoints.ned = waypoints.ned
+#            self.waypoints.airspeed = waypoints.airspeed
+#            self.waypoints.num_waypoints = waypoints.num_waypoints
         # elif planner_flag == 4:
 
         else:

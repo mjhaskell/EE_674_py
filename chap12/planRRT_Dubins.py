@@ -1,20 +1,24 @@
 import numpy as np
 from message_types.msg_waypoints import msg_waypoints
+from chap11.dubins_params import dubins_params
 from IPython.core.debugger import Pdb
 
 class planRRT():
     def __init__(self):
         self.segmentLength = 300 # standard length of path segments
         self.clearance = 10
+        self.dubins_path = dubins_params()
 
-    def planPath(self, wpp_start, wpp_end, map):
+    def planPath(self, wpp_start, wpp_end, R_min, map):
+        self.segmentLength = 2.5*R_min
+
         # desired down position is down position of end node
         pd = wpp_end.item(2)
 
         # specify start and end nodes from wpp_start and wpp_end
-        # format: N, E, D, cost, parentIndex, connectsToGoalFlag,
-        start_node = np.array([wpp_start.item(0), wpp_start.item(1), pd, 0, -1, 0])
-        end_node = np.array([wpp_end.item(0), wpp_end.item(1), pd, 0, 0, 0])
+        # format: N, E, D, chi, cost, parentIndex, connectsToGoalFlag,
+        start_node = np.array([wpp_start.item(0), wpp_start.item(1), pd, 0, 0, -1, 0])
+        end_node = np.array([wpp_end.item(0), wpp_end.item(1), pd, 0, 0, 0, 0])
 
         # establish tree starting with the start node
         tree = start_node.reshape(1,len(start_node))
@@ -32,25 +36,21 @@ class planRRT():
 
         numPaths = 0
         while numPaths < 3:
-            tree, flag = self.extendTree(tree, end_node, self.segmentLength, map, pd)
+            tree, flag = self.extendTree(tree, end_node, map, pd, R_min)
             numPaths = numPaths + flag
 
         # find path with minimum cost to end_node
         path = self.findMinimumPath(tree, end_node)
-        return self.smoothPath(path, map)
-
-#    def generateRandomNode(map, pd, chi):
-#        random_pt = np.random.uniform(0,map.city_width,2)
-#        temp = np.array([pd, 0., 0., 0])
-#        node = np.hstack([random_pt, temp])
-#        return node
+        return self.smoothPath(path, map, R_min)
 
     def generateRandomPoint(self, map, pd):
         north_east = np.random.uniform(0,map.city_width,2)
         pt = np.hstack([north_east, pd])
         return pt
 
-    def collision(self, start_node, end_node, map):
+    def collision(self, start_node, end_node, map, radius):
+        self.dubins_path.update(start_node[:3], start_node.item(3), \
+                end_node[:3], end_node.item(3), radius)
         pts = self.pointsAlongPath(start_node, end_node, 5)
 
         for i in range(len(map.building_north)):
@@ -65,7 +65,6 @@ class planRRT():
                         in_east_pts = in_north_pts[in_east]
                         pd = end_node[2]
                         if (-pd < map.building_height[j,i]+self.clearance):
-#                        if np.any(-in_east_pts[:,2] < map.building_height[j,i]+self.clearance):
                             return True
         return False
 
@@ -81,9 +80,7 @@ class planRRT():
 
         return ned
 
-#    def downAtNE(self, map, n, e):
-
-    def extendTree(self, tree, end_node, segmentLength, map, pd):
+    def extendTree(self, tree, end_node, map, pd, radius):
         success = False
         while not success:
             pt = self.generateRandomPoint(map, pd)
@@ -94,19 +91,21 @@ class planRRT():
             q = pt - tree[idx,:3]
             q /= np.linalg.norm(q)
             new_pt = tree[idx,:3] + q*D
-            if not self.collision(tree[idx,:3], new_pt, map):
+            if not self.collision(tree[idx,:3], new_pt, map, radius):
                 success = True
                 dist_to_goal = np.linalg.norm(new_pt - end_node[:3])
+                chi = np.arctan2((pt.item(1)-tree[idx,1],pt.item(0)-tree[idx,0]))
                 if dist_to_goal < self.segmentLength and not self.collision(new_pt,end_node[:3],map):
                     flag = 1
-                    new_node = np.hstack([new_pt, D+tree[idx,3], idx, 0])
+                    new_node = np.hstack([new_pt, chi, D+tree[idx,3], idx, 0])
                     tree = np.vstack([tree,new_node])
                     end_D = np.linalg.norm(end_node[:3] - new_pt)
-                    cur_end_node = np.hstack([end_node[:3],end_D+new_node[3],idx+1, flag])
+                    chi = np.arctan2(end_node[1]-new_pt[1],end_node[0]-new_pt[0])
+                    cur_end_node = np.hstack([end_node[:3],chi,end_D+new_node[3],idx+1,flag])
                     tree = np.vstack([tree,cur_end_node])
                 else:
                     flag = 0
-                    new_node = np.hstack([new_pt, D+tree[idx,3], idx, flag])
+                    new_node = np.hstack([new_pt, chi, D+tree[idx,3], idx, flag])
                     tree = np.vstack([tree,new_node])
 
                 return tree, flag
@@ -123,7 +122,7 @@ class planRRT():
             waypoints = np.vstack([waypoints, tree[idx]])
         return waypoints[::-1]
 
-    def smoothPath(self, path, map):
+    def smoothPath(self, path, map, radius):
         smoothed_path = []
         i = 0
         j = 1
@@ -132,7 +131,7 @@ class planRRT():
         while j < len(path)-1:
             ws = path[i]
             wp = path[j+1]
-            if self.collision(ws, wp, map):
+            if self.collision(ws, wp, map, radius):
                 last_node = path[j]
                 smoothed_path.append(last_node)
                 i = j

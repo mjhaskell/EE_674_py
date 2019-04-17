@@ -20,8 +20,6 @@ from chap11.path_manager import path_manager
 from chap12.world_viewer import world_viewer
 from chap12.path_planner import path_planner
 
-from IPython.core.debugger import Pdb
-
 # initialize the visualization
 world_view = world_viewer()  # initialize the viewer
 data_view = data_viewer()  # initialize view of data plots
@@ -52,7 +50,6 @@ while sim_time < SIM.end_time:
     # -------path planner - ----
     if path_manage.flag_need_new_waypoints == 1:
         waypoints = path_plan.update(map, estimated_state)
-        Pdb().set_trace()
 
     #-------path manager-------------
     path = path_manage.update(waypoints, PLAN.R_min, estimated_state)

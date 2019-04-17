@@ -21,7 +21,7 @@ class world_viewer():
         # initialize Qt gui application and window
         self.app = pg.QtGui.QApplication([])  # initialize QT
         self.window = gl.GLViewWidget()  # initialize the view object
-        self.window.setWindowTitle('Path Viewer')
+        self.window.setWindowTitle('World Viewer')
         self.window.setGeometry(0, 0, 1500, 1500)  # args: upper_left_x, upper_right_y, width, height
         grid = gl.GLGridItem() # make a grid to represent the ground
         grid.scale(self.scale/20, self.scale/20, self.scale/20) # set the size of the grid (distance between each line)
@@ -79,7 +79,7 @@ class world_viewer():
         # attitude of mav as a rotation matrix R from body to inertial
         R = Euler2Rotation(state.phi, state.theta, state.psi)
         # rotate and translate points defining mav
-        rotated_points = self.rotate_points(self.mav_points, R.T)
+        rotated_points = self.rotate_points(self.mav_points, R)
         translated_points = self.translate_points(rotated_points, mav_position)
         # convert North-East Down to East-North-Up for rendering
         R = np.array([[0, 1, 0], [1, 0, 0], [0, 0, -1]])
@@ -270,6 +270,7 @@ class world_viewer():
             wpts = np.hstack([wpts, wpts[:,0].reshape(3,1)])
         else:
             wpts = waypoints.ned[:,0:waypoints.num_waypoints]
+
         points = R @ wpts
         return points.T
 
