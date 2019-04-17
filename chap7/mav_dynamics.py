@@ -64,7 +64,6 @@ class mav_dynamics:
         self._t_gps = 999.
         self._update_msg_true_state()
         self.update_sensors()
-        print('h0: ')
 
     ###################################
     # public functions

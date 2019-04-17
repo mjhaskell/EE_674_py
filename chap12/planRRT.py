@@ -116,7 +116,7 @@ class planRRT():
 
         waypoints = tree[idx]
         while tree[idx,4] != -1:
-            Pdb().set_trace()
+#            Pdb().set_trace()
             idx = int(tree[idx,4])
             waypoints = np.vstack([waypoints, tree[idx]])
         return waypoints[::-1]

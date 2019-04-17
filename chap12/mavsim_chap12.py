@@ -48,12 +48,10 @@ while sim_time < SIM.end_time:
     #-------observer-------------
     measurements = mav.sensors  # get sensor measurements
     estimated_state = obsv.update(measurements)  # estimate states from measurements
-    Pdb().set_trace()
 
     # -------path planner - ----
     if path_manage.flag_need_new_waypoints == 1:
-#        waypoints = path_plan.update(map, estimated_state)
-        waypoints = path_plan.update(map, mav.msg_true_state)
+        waypoints = path_plan.update(map, estimated_state)
         Pdb().set_trace()
 
     #-------path manager-------------
