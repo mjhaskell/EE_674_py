@@ -37,6 +37,7 @@ class path_manager:
 
         if waypoints.num_waypoints == 0:
             waypoints.flag_manager_requests_waypoints = True
+            self.flag_need_new_waypoints = True
         else:
             if waypoints.type == 'straight_line':
                 self.line_manager(waypoints, state)

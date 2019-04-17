@@ -54,12 +54,15 @@ class mav_dynamics:
         self.msg_true_state = msg_state()
         # initialize sensors message
         self.sensors = msg_sensors()
+        self.sensors.gps_h = 100.
+        self.sensors.gps_Vg = 25.
         # random walk params for gps
         self._gps_eta_n = 0.
         self._gps_eta_e = 0.
         self._gps_eta_h = 0.
         # timer so that gps only updates every ts_gps seconds
         self._t_gps = 999.
+        self.update_sensors()
 
     ###################################
     # public functions

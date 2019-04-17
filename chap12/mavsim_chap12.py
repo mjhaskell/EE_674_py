@@ -20,6 +20,8 @@ from chap11.path_manager import path_manager
 from chap12.world_viewer import world_viewer
 from chap12.path_planner import path_planner
 
+from IPython.core.debugger import Pdb
+
 # initialize the visualization
 world_view = world_viewer()  # initialize the viewer
 data_view = data_viewer()  # initialize view of data plots
@@ -36,20 +38,23 @@ path_plan = path_planner()
 from message_types.msg_map import msg_map
 map = msg_map(PLAN)
 
-
 # initialize the simulation time
 sim_time = SIM.start_time
 
 # main simulation loop
 print("Press Command-Q to exit...")
+SIM.end_time = 200
 while sim_time < SIM.end_time:
     #-------observer-------------
     measurements = mav.sensors  # get sensor measurements
     estimated_state = obsv.update(measurements)  # estimate states from measurements
+    Pdb().set_trace()
 
     # -------path planner - ----
     if path_manage.flag_need_new_waypoints == 1:
-        waypoints = path_plan.update(map, estimated_state)
+#        waypoints = path_plan.update(map, estimated_state)
+        waypoints = path_plan.update(map, mav.msg_true_state)
+        Pdb().set_trace()
 
     #-------path manager-------------
     path = path_manage.update(waypoints, PLAN.R_min, estimated_state)
@@ -66,8 +71,8 @@ while sim_time < SIM.end_time:
     mav.update_sensors()
 
     #-------update viewer-------------
-    world_view.update(map, waypoints, path, mav.true_state)  # plot path and MAV
-    data_view.update(mav.true_state, # true states
+    world_view.update(map, waypoints, path, mav.msg_true_state)  # plot path and MAV
+    data_view.update(mav.msg_true_state, # true states
                      estimated_state, # estimated states
                      commanded_state, # commanded states
                      SIM.ts_simulation)
