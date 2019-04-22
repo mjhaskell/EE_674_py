@@ -40,7 +40,7 @@ map = msg_map(PLAN)
 sim_time = SIM.start_time
 
 # main simulation loop
-print("Press Command-Q to exit...")
+input("Press ENTER to start...")
 SIM.end_time = 200
 while sim_time < SIM.end_time:
     #-------observer-------------
@@ -75,3 +75,4 @@ while sim_time < SIM.end_time:
     #-------increment time-------------
     sim_time += SIM.ts_simulation
 
+print('Simulation has ended')
