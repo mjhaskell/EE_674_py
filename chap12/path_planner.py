@@ -76,6 +76,33 @@ class path_planner:
 #            self.waypoints.num_waypoints = waypoints.num_waypoints
         # elif planner_flag == 4:
 
+        elif planner_flag == 4:
+            self.waypoints.type = 'dubins'
+            self.waypoints.num_waypoints = 0
+            Va = 25
+            # current configuration vector format: N, E, D, Va
+            wpp_start = np.array([state.pn,
+                                  state.pe,
+                                  -state.h,
+                                  state.Va,
+                                  state.chi])
+            if np.linalg.norm(np.array([state.pn, state.pe, -state.h])-np.array([map.city_width, map.city_width, -state.h])) == 0:
+                wpp_end = np.array([0,
+                                    0,
+                                    -state.h,
+                                    Va,
+                                    np.pi/2])
+            else:
+                wpp_end = np.array([map.city_width,
+                                    map.city_width,
+                                    -state.h,
+                                    Va,
+                                    -np.pi/2])
+
+            radius = 225
+            waypoints = self.rrt.planPath(wpp_start, wpp_end, radius, map)
+            self.waypoints = waypoints
+
         else:
             print("Error in Path Planner: Undefined planner type.")
 
